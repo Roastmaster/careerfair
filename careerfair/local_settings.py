@@ -5,7 +5,7 @@
 # have to be manually restarted because changes will not be noticed
 # immediately.
 
-DEBUG = False
+DEBUG = True
 
 # Make these unique, and don't share it with anybody.
 SECRET_KEY = "t@u3guab)i0c8ulf1l6=vgcstpk(4(3wn#p0vu+proea82+%sb"

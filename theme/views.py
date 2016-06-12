@@ -58,10 +58,6 @@ def get_bill(company):
     return paypal_info.email, paypal_info.item_name, total_bill
 
 
-def home(request):
-    print "hello"
-    return render_to_response('pages/index.html', {}, RequestContext(context))
-
 # A complicated and student function that parses the CompanyProfileForm
 # and saves all the information into a user and a companyprofile.
 # It parses the post request for all the form information, as well as

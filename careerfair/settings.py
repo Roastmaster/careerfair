@@ -124,8 +124,8 @@ LANGUAGES = (
 # A boolean that turns on/off debug mode. When set to ``True``, stack traces
 # are displayed for error pages. Should always be set to ``False`` in
 # production. Best set to ``True`` in local_settings.py
-DEBUG = False
-TEMPLATE_DEBUG = False 
+DEBUG = True
+TEMPLATE_DEBUG = True 
 
 # Whether a user's session cookie expires when the Web browser is closed.
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -146,23 +146,6 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 #############
 # DATABASES #
 #############
-
-DATABASES = {
-    "default": {
-        # Add "postgresql_psycopg2", "mysql", "sqlite3" or "oracle".
-        "ENGINE": "django.db.backends.",
-        # DB name or path to database file if using sqlite3.
-        "NAME": "",
-        # Not used with sqlite3.
-        "USER": "",
-        # Not used with sqlite3.
-        "PASSWORD": "",
-        # Set to empty string for localhost. Not used with sqlite3.
-        "HOST": "",
-        # Set to empty string for default. Not used with sqlite3.
-        "PORT": "",
-    }
-}
 
 
 #########
@@ -242,7 +225,7 @@ if DJANGO_VERSION < (1, 9):
 # below attributes
 PAYPAL_TEST = False
 PAYPAL_WPP_USER = "roastmiester_api1.gmail.com"
-PAYPAL_WPP_PASSWORD = "9KPMDBWM7D6EZ9MX"
+PAYPAL_WPP_PASSWORD = 
 PAYPAL_WPP_SIGNATURE = "AFcWxV21C7fd0v3bYYYRCpSSRl31AsBX0cdjJ1xtyicN4SrfgMY88HGy"
 
 INSTALLED_APPS = (
@@ -369,7 +352,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # # Host for sending e-mail.
 EMAIL_HOST =  'smtp.gmail.com'
 EMAIL_HOST_USER = 'm.ruben1234@gmail.com'
-EMAIL_HOST_PASSWORD = 'the light riser'
+EMAIL_HOST_PASSWORD = 
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'm.ruben1234@gmail.com'
 
@@ -386,9 +369,9 @@ NEVERCACHE_KEY = "t&2-slxgfx&t!ix(n5q!=x#iw*@l3xesc9x73^(=va@*7vf+(@"
 DATABASES = {
     "default": {
         # Ends with "postgresql_psycopg2", "mysql", "sqlite3" or "oracle".
-        "ENGINE": "django.db.backends.sqlite3",
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
         # DB name or path to database file if using sqlite3.
-        "NAME": "hamlet",
+        "NAME": "shpe",
         # Not used with sqlite3.
         "USER": "shpe",
         # Not used with sqlite3.
