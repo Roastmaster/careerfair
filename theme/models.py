@@ -217,51 +217,9 @@ class CompanyRep(models.Model):
         return self.rep
 
 
-class CompanyProfile(models.Model):
-    user = models.OneToOneField(User)
-    phone_number = models.CharField(max_length=15, blank=True)
-    public_email = models.EmailField(max_length=120, blank=True)
-    company = models.CharField(max_length=30)
-    company_website = models.CharField(max_length=1000, blank=True)
-    logo = models.ImageField(upload_to='uploads/company_images', blank=True)
-    days_attending = MultiSelectField(choices=DAY_CHOICES)
-    majors_wanted = MultiSelectField(choices=MAJOR_CHOICES)
-    grade_level_wanted = MultiSelectField(choices=GRADE_LEVEL_CHOICES)
-    mood = models.TextField(max_length=1000, blank=True)
-    company_bio = models.TextField(max_length=1000, blank=True)
-    has_submitted_payment = models.BooleanField(default=False)
-    how_are_you_feeling_today = models.CharField(max_length=1000, blank=True)
-    friday_tables = models.TextField(default='[]')
-    saturday_tables = models.TextField(default='[]')
-    creation_date = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
-    reps = models.TextField(default="")
-    reps_alumni = models.TextField(default="", null=True)
-    number_of_representatives = models.IntegerField(default=1)
-    number_of_tables = models.IntegerField(default=0)
-    sponsor = models.CharField(max_length=100, default="", blank=True)
-    total_bill = models.IntegerField(null=True, default=500)
-    interview_rooms_friday = models.IntegerField(null=True, default=0)
-    interview_friday_from = models.CharField(null=True, blank=True, max_length=15)
-    interview_friday_to = models.CharField(null=True, blank=True, max_length=15)
-    interview_rooms_saturday = models.IntegerField(null=True, default=0)
-    interview_saturday_from = models.CharField(null=True, blank=True, max_length=15)
-    interview_saturday_to = models.CharField(null=True, blank=True,max_length=15)
-
-    def __unicode__ (self):
-        return self.company
-
-
 from django.db.models.signals import pre_delete 
 from django.dispatch import receiver
 
-@receiver(pre_delete, sender=CompanyProfile)
-def delete_table(sender, instance, **kwargs):
-    print sender
-    if sender == CompanyProfile:
-        reservations = ArmoryTableData.objects.get()
-        for table in instance.tables:
-            reservations[table[1]][table[0]] = None
 
 
 #

@@ -7,13 +7,13 @@ from django.shortcuts import render_to_response, render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
-from models import CompanyProfile, StudentProfile
+from models import StudentProfile
 from models import RegistrationPage
 from models import ArmoryTableData
 from models import CompanyRep
 from models import PayPalInfo
 from models import SponsorshipPackage
-from forms import UserForm, StudentProfileForm, CompanyProfileForm, CompanySearchForm, EditCompanyProfileForm, StudentSearchForm, RepForm, BaseRepFormSet
+from forms import UserForm, StudentProfileForm, StudentSearchForm, RepForm, BaseRepFormSet
 from django.forms.formsets import formset_factory
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
@@ -58,7 +58,7 @@ def get_bill(company):
     return paypal_info.email, paypal_info.item_name, total_bill
 
 
-# A complicated and student function that parses the CompanyProfileForm
+# A complicated and student function that parses the 
 # and saves all the information into a user and a companyprofile.
 # It parses the post request for all the form information, as well as
 # the logo, and representative names.
@@ -78,7 +78,7 @@ def company_register(request):
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
         user_form = UserForm(request.POST, request.FILES)
-        profile_form = CompanyProfileForm(request.POST, request.FILES)
+        profile_form = (request.POST, request.FILES)
         rep_formset = RepFormSet(request.POST)
 
         # If the two forms are valid...
@@ -161,7 +161,7 @@ def company_register(request):
     # These forms will be blank, ready for user input.
     else:
         user_form = UserForm()
-        profile_form = CompanyProfileForm()
+        profile_form = ()
         rep_formset = RepFormSet()
 
     context["form"] = {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'rep_formset':rep_formset}
@@ -310,7 +310,7 @@ def edit_profile(request):
         pass
 
     if is_company: 
-        form = EditCompanyProfileForm(request.POST or None, initial={'company':user.companyprofile.company, 
+        form = Edit(request.POST or None, initial={'company':user.companyprofile.company, 
                                                                 'public_phone':user.companyprofile.phone_number,
                                                                 'company_website':user.companyprofile.company_website,
                                                                 'logo':user.companyprofile.logo,
@@ -354,7 +354,7 @@ def edit_profile(request):
     if request.method == 'POST':
         if is_company:
             # RepFormSet is the thing that allows us to associate many reps with one company
-            form = EditCompanyProfileForm(request.POST, instance=user.companyprofile)
+            form = Edit(request.POST, instance=user.companyprofile)
             rep_formset = RepFormSet(request.POST)
             if form.is_valid() and rep_formset.is_valid():
                 profile = form.save(commit=False)

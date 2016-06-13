@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.files.images import get_image_dimensions
 from multiselectfield import MultiSelectField
-from models import StudentProfile, CompanyProfile, StudentSearchFormModel, SponsorshipPackage
+from models import StudentProfile, StudentSearchFormModel, SponsorshipPackage
 from models import DAY_CHOICES, GRADE_LEVEL_CHOICES, MAJOR_CHOICES, VOLUNTEER_CHOICES
 from django.forms.formsets import BaseFormSet
 
@@ -98,67 +98,6 @@ class StudentProfileForm(forms.ModelForm):
         return picture
 
 
-
-class CompanyProfileForm(forms.ModelForm):
-    company = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Company name (required)'}))
-    mood = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'How are you feeling today?'}), required=False)
-    company_bio = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'A short blurb about who your company is and what you do.'}), required=False)
-    phone_number = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Phone number'}), required=False)
-    public_email = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Public email '}), required=False)
-    company_website = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Application website'}), required=False)
-    majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
-    days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
-    grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
-    number_of_tables = forms.IntegerField()
-    sponsor = forms.ChoiceField(choices=[(s.title,s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect, required=False)
-    interview_friday_from = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "12:00pm"}),required=False)
-    interview_friday_to = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "1:00pm"}), required=False)
-    interview_saturday_from = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "12:00pm"}),required=False)
-    interview_saturday_to = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "1:00pm"}), required=False)
-
-    class Meta:
-        model = CompanyProfile
-        fields = ('company', 'public_email', 'phone_number', 'company_website' , 'logo' , 
-            'days_attending', 'majors_wanted', 'grade_level_wanted', 'company_bio',
-            "mood", 'number_of_tables', 'sponsor', 'interview_rooms_friday', 
-            'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
-            'interview_saturday_from' , 'interview_saturday_to')
-
-    def clean_picture(self):
-        picture = self.cleaned_data['picture']
-
-        try:
-            w, h = get_image_dimensions(picture)
-
-            #validate dimensions
-            max_width = max_height = 2400
-            if w > max_width or h > max_height:
-                raise forms.ValidationError(
-                    u'Please use an image that is '
-                    '%s x %s pixels or smaller.' % (max_width, max_height))
-
-            #validate content type
-            main, sub = picture.content_type.split('/')
-            if not (main == 'image' and sub in ['jpeg', 'pjpeg', 'gif', 'png']):
-                raise forms.ValidationError(u'Please use a JPEG, '
-                    'GIF or PNG image.')
-
-            #validate file size
-            image = self.cleaned_data.get('image',False)
-            if image:
-                if image._size > 4*1024*1024:
-                    raise forms.ValidationError("Image file too large ( > 4mb )")
-                return image
-
-        except AttributeError:
-            pass
-
-        except TypeError:
-            return picture
-
-
-        return picture
-
 class RepForm(forms.Form):
     """
     Form for individual representative signups
@@ -200,26 +139,6 @@ class BaseRepFormSet(BaseFormSet):
                     )
 
 
-class EditCompanyProfileForm(forms.ModelForm):
-    company = forms.CharField(widget=forms.TextInput())
-    majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
-    days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
-    grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
-    number_of_tables = forms.IntegerField()
-    sponsor = forms.ChoiceField(choices=[(s.title,s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect)
-    class Meta:
-        model = CompanyProfile
-        fields = ('company', 'phone_number', 'company_website' , 'logo' , 
-            'days_attending', 'majors_wanted', 'grade_level_wanted', 'company_bio', 'number_of_tables', 
-            'sponsor', 'interview_rooms_friday', 
-            'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
-            'interview_saturday_from' , 'interview_saturday_to')
-
-class CompanySearchForm(forms.ModelForm):
-    majors_wanted = forms.ChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
-    class Meta:
-        model = CompanyProfile
-        fields = ('company', 'days_attending', 'majors_wanted', 'grade_level_wanted')
 
 class StudentSearchForm(forms.ModelForm):
     major_wanted = forms.ChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
