@@ -30,7 +30,6 @@ from models import StaffProfile
 from models import Question
 
 from models import StudentProfile
-from models import CompanyProfile
 from models import PayPalInfo
 from models import SponsorshipPackage
 
@@ -47,10 +46,6 @@ from django.contrib.auth.models import User
 # USER EXTENSIONS:
 #
 
-class CompanyProfileInLine(admin.StackedInline):
-	model = CompanyProfile
-	can_delete = False
-	verbose_name_plural = "companyprofile"
 
 class StudentProfileInLine(admin.StackedInline):
 	model = StudentProfile
@@ -58,7 +53,7 @@ class StudentProfileInLine(admin.StackedInline):
 	verbose_name_plural = "studentprofile"
 
 class UserAdmin(BaseUserAdmin):
-	inlines = (CompanyProfileInLine,StudentProfileInLine)
+	inlines = (StudentProfileInLine,)
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
@@ -223,7 +218,6 @@ admin.site.register(RegistrationPage, RegistrationPageAdmin)
 admin.site.register(SponsorUsPage, SponsorUsPageAdmin)
 admin.site.register(FAQPage, FAQPageAdmin)
 admin.site.register(StudentProfile)
-admin.site.register(CompanyProfile)
 admin.site.register(PayPalInfo)
 admin.site.register(SponsorshipPackage)
 admin.site.register(ArmoryTableData)
