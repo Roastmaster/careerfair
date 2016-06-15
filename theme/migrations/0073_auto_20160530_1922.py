@@ -12,19 +12,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='companyprofile',
-            name='alumni_reps',
-            field=models.ManyToManyField(related_name='Alumni_Representatives', to='theme.CompanyRep'),
-        ),
-        migrations.AddField(
-            model_name='companyprofile',
-            name='number_of_representatives',
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name='companyprofile',
-            name='reps',
-            field=models.ManyToManyField(related_name='Representatives', to='theme.CompanyRep'),
-        ),
     ]

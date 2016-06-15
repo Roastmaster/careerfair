@@ -14,11 +14,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='companyprofile',
-            name='company_uid',
-            field=models.IntegerField(default=id),
-        ),
-        migrations.AddField(
-            model_name='companyprofile',
             name='has_submitted_payment',
             field=models.BooleanField(default=False),
         ),

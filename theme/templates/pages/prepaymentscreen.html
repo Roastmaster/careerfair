@@ -49,7 +49,7 @@
                         <div class="span2">
                         </div>
                         <div class="span8">
-                            <h2>Days Attending <span id="butimarecruiter">(Friday: ${{paypal.friday_price}};  Saturday:  ${{paypal.saturday_price}} )</span></h2>
+                            <h2>Days Attending <span id="butimarecruiter">(Friday: ${{paypal.friday_price}};  Saturday:  ${{paypal.saturday_price}}; Weekend: ${{paypal.weekend_price}} )</span></h2>
                             {% for day in user.companyprofile.days_attending %}
                             <p class="confirm-item">{{day}}<br></h4>
                             {% endfor %}
@@ -60,8 +60,10 @@
                         <div class="span2">
                         </div>
                         <div class="span8">
-                            <h2>Representatives ({{user.companyprofile.number_of_representatives}})<span id="butimarecruiter">(${{paypal.price_per_rep}} per non-alumni rep)</span></h2>
-                            {{ user.companyprofile.reps|linebreaks}}
+                            <h2>Representatives ({{user.companyprofile.number_of_representatives}})<span id="butimarecruiter">(${{paypal.price_per_rep}} per rep per day beyond the first)</span></h2>
+			{% for rep in user.companyprofile.reps.all %}
+			{{rep.rep}}<br>
+			{% endfor %}
                         </div>
                         <div class="span2">
                         </div>
@@ -71,28 +73,40 @@
                         <div class="span2">
                         </div>
                         <div class="span8">
-                            <h2>Number of tables requesting:  <span id="butimarecruiter">(${{paypal.price_per_table}} per table)</span></h2>
-                            {{user.companyprofile.number_of_tables}}
+                            <h2>Number of tables requesting:  <span id="butimarecruiter">(${{paypal.price_per_table}} per table per day beyond the first)</span></h2>
+                            Friday: {{user.companyprofile.friday_number_of_tables}}<br>
+			    Saturday: {{user.companyprofile.saturday_number_of_tables}}<br>
                         </div>
                     </div>
-                    <div id="ruben_buffer"></div>
-                    <div class="row">
-                        <div class="span2">
-                        </div>
-                        <div class="span8">
                             {% if user.companyprofile.sponsor %}
+                    <div id="ruben_buffer"></div>
+                   <div class="row">
+                        <div class="span2">
+                        </div>
+                        <div class="span8">
                             <h2>You are choosing to sponsor the career fair.</h2>
-                            You have chosen the <b><a href="/sponsor">{{user.companyprofile.sponsor}}</a></b> sponsorship.
+                            you have chosen the <b><a href="/sponsor">{{user.companyprofile.sponsor}}</a></b> sponsorship.
+                        </div>
+                    </div>
                             {% endif %}
+                            {% if user.companyprofile.sponsorshipitem %}
+                    <div id="ruben_buffer"></div>
+                   <div class="row">
+                        <div class="span2">
+                        </div>
+                        <div class="span8">
+                            <h2>You have chosen the following sponsorship items.</h2>
+                            {% for item in user.companyprofile.sponsorshipitem.all %}{{item}}<br> {% endfor %}
                         </div>
                     </div>
                     <div id="ruben_buffer"></div>
+                            {% endif %}
                     <div id="ruben_buffer"></div>
                     <div class="row">
                         <div class="span2">
                         </div>
                         <div class="span6">
-                            <div class="btn btn-default plusbuffer"><a href="/dashboard/edit_profile">Something is wrong. I want to go back and edit my profile.</a></div>
+                            <div class="btn btn-default plusbuffer"><a href="/dashboard/edit_profile">something is wrong. i want to go back and edit my profile.</a></div>
                         </div>
                     </div>
                     <div id="ruben_buffer"></div>

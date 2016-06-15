@@ -156,11 +156,20 @@ class SponsorshipPackage(models.Model):
     title = models.CharField(help_text="What do you name this package? This will appear on the sponsorus page", max_length=100)
     description = RichTextField(help_text="In detail, describe the amenities of the package.  Be sure to format it nicely because whatever you write here will be displayed on the sponsor us page.")
     price = models.IntegerField(help_text="Finally, put the price.")
+    num_free_tables = models.IntegerField(help_text="Number of free tables the company would recieve for picking this sponsorship")
+    num_free_reps = models.IntegerField(help_text="Number of free reps the company recieve for this package")
     sponsoruspage = models.ForeignKey(SponsorUsPage, related_name="sponsorship_package")
+    discount = models.IntegerField(help_text="Some amount to be subtracted from their end total? (free registration or something)", default=0)
 
     def __unicode__ (self):
         return self.title
 
+class SponsorshipItem(models.Model):
+    name = models.CharField(help_text="The name of this item", max_length=200)
+    price = models.IntegerField(help_text="The price of this item")
+
+    def __unicode__ (self):
+	return self.name
 #
 #
 # Student profile
@@ -183,7 +192,7 @@ class StudentProfile(models.Model):
     hometown = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=2, blank=True)
     open_to_relocation = models.BooleanField(default=False, blank=True, help_text="Open to relocation?")
-    GPA = models.DecimalField(max_digits=3, decimal_places=2, null=True)
+    GPA = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
     bio = models.TextField(max_length=1000, blank=True)
@@ -209,17 +218,72 @@ class StudentSearchFormModel(models.Model):
 # Company profile
 
 class CompanyRep(models.Model):
-    rep = models.CharField(max_length=100)
-    is_alumni = models.BooleanField(default=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+   rep = models.CharField(max_length=100)
+   is_alumni = models.BooleanField(default=False)
+   days_attending = MultiSelectField(choices=DAY_CHOICES)
+   user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+   company = models.CharField(max_length=60, blank=True, null=True)
 
-    def __unicode__(self):
-        return self.rep
+   def __unicode__(self):
+       return self.rep
 
+
+class CompanyProfile(models.Model):
+    user = models.OneToOneField(User)
+    phone_number = models.CharField(max_length=15, blank=True)
+    public_email = models.EmailField(max_length=120, blank=True)
+    company = models.CharField(max_length=60)
+    company_website = models.CharField(max_length=1000, blank=True)
+    logo = models.ImageField(upload_to='uploads/company_images', blank=True)
+    days_attending = MultiSelectField(choices=DAY_CHOICES)
+    majors_wanted = MultiSelectField(choices=MAJOR_CHOICES)
+    grade_level_wanted = MultiSelectField(choices=GRADE_LEVEL_CHOICES)
+    mood = models.TextField(max_length=1000, blank=True)
+    company_bio = models.TextField(max_length=1000, blank=True)
+    has_submitted_payment = models.BooleanField(default=False)
+    how_are_you_feeling_today = models.CharField(max_length=1000, blank=True)
+    friday_tables = models.TextField(default='[]')
+    friday_number_of_tables = models.IntegerField(default=0)
+    saturday_tables = models.TextField(default='[]')
+    saturday_number_of_tables = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    reps = models.ManyToManyField(CompanyRep, related_name="reps")
+    reps_alumni = models.ManyToManyField(CompanyRep, related_name="alumni")
+    number_of_representatives = models.IntegerField(default=1)
+    number_of_tables = models.IntegerField(default=0)
+    sponsor = models.CharField(max_length=100, default="", blank=True)
+    total_bill = models.IntegerField(null=True, default=500)
+    interview_rooms_friday = models.IntegerField(null=True, default=0)
+    interview_friday_from = models.CharField(null=True, blank=True, max_length=15)
+    interview_friday_to = models.CharField(null=True, blank=True, max_length=15)
+    interview_rooms_saturday = models.IntegerField(null=True, default=0)
+    interview_saturday_from = models.CharField(null=True, blank=True, max_length=15)
+    interview_saturday_to = models.CharField(null=True, blank=True,max_length=15)
+    tables = models.TextField(default='[]', null=True)
+    is_non_profit = models.BooleanField(default=False)
+    sponsorshipitem = models.ManyToManyField(SponsorshipItem, related_name="sponsorshipitem")  
+    def __unicode__ (self):
+        return self.company
 
 from django.db.models.signals import pre_delete 
 from django.dispatch import receiver
 
+@receiver(pre_delete, sender=CompanyProfile)
+def delete_table(sender, instance, **kwargs):
+    if sender == CompanyProfile:
+       	import json
+	reservations = ArmoryTableData.objects.get().friday_reservations
+	friday = json.loads(instance.friday_tables) 
+	saturday = json.loads(instance.saturday_tables)
+	reservations =json.loads(reservations)
+        for table in friday:  
+	    print table 
+            reservations[table[1]][table[0]] = None
+	reservations = ArmoryTableData.objects.get().saturday_reservations
+	reservations = json.loads(reservations)
+	for table in saturday:
+	    reservations[table[1]][table[0]] = None
 
 
 #
@@ -245,6 +309,10 @@ class RegistrationPage(Page, RichText):
                     "to be notified upon form submission. Leave blank to "
                     "disable notifications."),
         max_length=200)
+    attachment = models.FileField(_("Maybe a PDF with some information?"), 
+	upload_to='uploads/company_images',
+	blank=True, 
+	help_text=_("A file field.  Feel free to add whatever you want to this email."))
     google_maps_api_key = models.CharField(max_length=200, blank=True, 
         help_text="Google how to obtain a google maps key for the location mueller center and past it here")
     text_under_map = models.TextField(max_length=1000, blank=True)
@@ -318,7 +386,19 @@ class PricingPage(Page, RichText):
         help_text="Put title here or something")
     pricing_info = RichTextField(max_length=30000, help_text="Enter a nicely formatted pricing page here, complete with any sponsorship information you could think of.")
 
-#
+
+class TipPage(Page, RichText):
+    heading = models.CharField(max_length=200,
+	help_text="Title here or something")
+
+    left_column_header = models.CharField(max_length=100, help_text="left column")
+    mid_column_header = models.CharField(max_length=100, help_text="mid column")
+    right_column_header = models.CharField(max_length=100, help_text="right column")
+    left_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
+    mid_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
+    right_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
+    bottom_header = models.CharField(max_length=100, help_text="title for gigantic field")
+    bottom_field = RichTextField(max_length=10000, help_text="gigantic field under everything")
 #
 # HOMEPAGE:
 #
@@ -465,12 +545,12 @@ class IconBlurb(Orderable):
 # from the front end
 class PayPalInfo(models.Model):
     email = models.EmailField(default="", help_text="The email account associated with whatever paypal account you plan on using")
-    friday_price = models.IntegerField(help_text="Friday's price", default = 500)
-    saturday_price = models.IntegerField(help_text="Saturday's price", default = 500)
-    price_per_rep = models.IntegerField(help_text="Price per representative", default = 75)
+    friday_price = models.IntegerField(help_text="Friday's base fee.  THis includes the registration fee, one table, two reps, breakfast and lunch", default = 550)
+    saturday_price = models.IntegerField(help_text="Saturday's base fee.  Also includes registration fee, one table, two reps, etc", default = 560)
+    weekend_price = models.IntegerField(help_text="Discounted price for companies attending both days", default=1050)
+    price_per_rep = models.IntegerField(help_text="Price per representative beyond the first two", default = 75)
     price_per_alumni_rep = models.IntegerField(help_text="Price per RPI alumni representative", default=0)
-    price_per_table = models.IntegerField(help_text="Price per table", default=100)
-    sponsorship = models.IntegerField(help_text="How much do you want to charge for sponsorships?", default=0)
+    price_per_table = models.IntegerField(help_text="Price per table beyond the first", default=100)
     item_name = models.CharField(help_text="What is the name of the item/service they are buying?",
         max_length=400, 
         default="SHPE Company Career Fair Registration Fee 2016")
@@ -491,8 +571,9 @@ def show_me_the_money(sender, **kwargs):
         # Check that the receiver email is the same we previously
         # set on the business field request. (The user could tamper
         # with those fields on payment form before send it to PayPal)
-        if ipn_obj.receiver_email != "roastmiester@gmail.com":
-            # Not a valid payment
+        if ipn_obj.receiver_email != PayPalInfo.objects.get().email:
+            # Not a valid paymen
+	    print PayPalInfo.objects.get().email;
             return
 
         # ALSO: for the same reason, you need to check the amount

@@ -27,7 +27,7 @@ $(document).ready(function () {
 	            <!-- Display each form. The as_p method wraps each element in a paragraph
 	                 (<p>) element. This ensures each element appears on a new line,
 	                 making everything look neater. -->
-	            <h3 class ="title"> Your contact/login information (remember this stuff) </h3>
+	            <h3 class ="title"> Your contact/login information (remember this information) </h3>
 	            <div class="row">
 	            	<div class="span7">
 	            		{% if user_form.username.errors %}
@@ -120,10 +120,15 @@ $(document).ready(function () {
 	            </div>
 		    	<div class="row">
 			    	<div class="span4">
-		            	<label>How many tables are you requesting? (Choose between 1 and 3) <span id="butimarecruiter">(Required)</span></label>
-		            		{{profile_form.number_of_tables.errors}}
-		            		{{profile_form.number_of_tables}}
+			<label>How many tables are you requesting for Friday? <span id="butimarecruiter">(Required)</span></label>
+					{{profile_form.friday_number_of_tables.errors}}
+		            		{{profile_form.friday_number_of_tables}}
 		           	</div>
+				<div class="span4">
+				<label> How many tables are you requesting for Saturday? <span id="butimarecruiter">(Required)</span></label>
+					{{profile_form.saturday_number_of_tables.errors}}
+					{{profile_form.saturday_number_of_tables}}
+				</div>
 		        </div>
 		        <div class="row">
 		           	<div class="span4">
@@ -150,28 +155,38 @@ $(document).ready(function () {
 		           	</div>
 		    	</div>
 		    	<div class="row">
-		    		<div class="span8">
+		    		<div class="span4">
 		           		<label>Would you like to sponsor the career fair? If so, pick the sponsorship level you are interested in from below <a href="/sponsor">(more info)</a>:</label>
 			           		{{profile_form.sponsor.errors}}
 		            		{{profile_form.sponsor}}
 		           	</div>
+				<div class="span4">
+					<label>Would you like to pick a sponsorship item?  If so pick the item(s) that interests you from below. <a href="/sponsor">(more info)</a></label>
+					{{profile_form.sponsorshipitem.errors}}
+					{{profile_form.sponsorshipitem}}
+				</div>
 		          </div>
 		    	<div class="row">
 		    		<div class="span8">
-		    			<label>Who do you plan on bringing? (include yourself, check the box if they are an RPI alum)</label>
+		    			<label>Who do you plan on bringing, and on what days? (include yourself, check the box if they are an RPI alum)</label>
 			    		<div class="row">
 			    			<div class="span8">
+					{% if rep_formset.error %}						
+					<div class="row"><div class="span8"><div class="alert alert-danger"><h2>{{rep_formset.errors}}</h2></div></div></div>
+					{% endif %}
 		    			    {{ rep_formset.management_form }}
-
 						    {% for rep_form in rep_formset %}
 						        <div class="rep-formset">
-						            {{ rep_form.rep }}
 						            {% if rep_form.rep.errors %}
 						                {% for error in rep_form.rep.errors %}
-						                    {{ error|escape }}
+						                   <div class="alert alert-danger"> {{ error|escape }}</div>
 						                {% endfor %}
 						            {% endif %}
 
+							    {{ rep_form.rep }}
+							    {{ rep_form.days_attending}}
+							    {{ rep_form.days_attending.errors}}
+							
 						            {{ rep_form.is_alumni }}
 						            {% if rep_form.is_alumni.errors %}
 						                {% for error in rep_form.is_alumni.errors %}
@@ -183,7 +198,7 @@ $(document).ready(function () {
 
 						    {% if rep_formset.non_form_errors %}
 						        {% for error in rep_formset.non_form_errors %}
-						            {{ error|escape }}
+						            <div class = "alert alert-danger"><h4 class="title">{{ error|escape }}</h2></div>
 						        {% endfor %}
 						    {% endif %}
 		    				</div>

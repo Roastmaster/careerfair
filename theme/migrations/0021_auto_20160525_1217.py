@@ -13,13 +13,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='companyprofile',
-            name='company_uid',
-        ),
-        migrations.AddField(
-            model_name='companyprofile',
-            name='id',
-            field=models.IntegerField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
-        ),
     ]

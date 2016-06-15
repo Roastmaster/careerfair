@@ -7,58 +7,102 @@ from django.shortcuts import render_to_response, render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
-from models import StudentProfile
+from models import CompanyProfile, StudentProfile
 from models import RegistrationPage
 from models import ArmoryTableData
 from models import CompanyRep
 from models import PayPalInfo
 from models import SponsorshipPackage
-from forms import UserForm, StudentProfileForm, StudentSearchForm, RepForm, BaseRepFormSet
+from models import SponsorshipItem
+from forms import UserForm, StudentProfileForm, CompanyProfileForm, CompanySearchForm, EditCompanyProfileForm, StudentSearchForm, RepForm, BaseRepFormSet
 from django.forms.formsets import formset_factory
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from paypal.standard.forms import PayPalPaymentsForm
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-NGROK =  "careerfair.rpi.edu"
+NGROK =  "rpicareerfair.org"
 
 # A view hooked up to the page
 def send_custom_email(page_type, user):
     if page_type.send_email:
         subject = page_type.email_subject
         message = page_type.email_message
-        if page_type.email_copies:
+	try:
+	    attachment = open(page_type.attachment.url[1:],'r')
+        except:
+	    attachment = None
+	if page_type.email_copies:
             email_to = page_type.email_copies.split(",")
             email_to += [user.email]
         else:
             email_to = [user.email]
-        send_mail(subject, message, 'Career Fair Staff',
-                email_to, fail_silently=False)
+        email = EmailMessage(subject, message, 'Career Fair Staff',email_to)
+	if attachment:
+		email.attach("nsbe_shpe_cf16.pdf", attachment.read(), 'application/pdf') 
+	email.send(fail_silently=False)
 
 # Calculates a company's registration price based off the
 # PayPalInfo object the administrative user provided and
 # the company's signup info.
 def get_bill(company):
+    # Retrie ve the admin spcified prices
     paypal_info = PayPalInfo.objects.all()[0]
     total_bill = 0
-    if "Friday" in company.days_attending:
-        total_bill += paypal_info.friday_price
-    if "Saturday" in company.days_attending:
+
+    # Calculate the base price based off the days attending
+    if "Friday" in company.days_attending and "Saturday" in company.days_attending:
+        print "what"
+	print company.days_attending
+	total_bill += paypal_info.weekend_price
+    elif "Friday" in company.days_attending:
+	total_bill += paypal_info.friday_price
+    elif "Saturday" in company.days_attending:
         total_bill += paypal_info.saturday_price
-    alumni = json.dumps(company.reps_alumni)
-    for rep in json.dumps(company.reps):
-        if rep not in alumni:
+
+    print total_bill
+
+    # Add additional rep fee for each rep beyond the first two
+    sponsorship = company.sponsor
+    if sponsorship:
+	sponsorship = SponsorshipPackage.objects.get(title=company.sponsor)
+    	count = 1 - sponsorship.num_free_reps
+    else:
+	count = 1
+    for rep in company.reps.all():
+        if count > 2:
             total_bill += paypal_info.price_per_rep
-        else:
-            total_bill += paypal_info.price_per_alumni_rep
-    total_bill += paypal_info.price_per_table*company.number_of_tables
-    if company.sponsor:
-        total_bill += SponsorshipPackage.objects.get(title=company.sponsor).price
+	
+        count += len(rep.days_attending) or 1
+
+    print total_bill
+
+    for item in company.sponsorshipitem.all():
+	total_bill += item.price
+
+    print total_bill
+    # Add additional fees for tables beyond the first
+    if sponsorship:
+	total_bill += paypal_info.price_per_table*(company.number_of_tables-1-sponsorship.num_free_tables)
+    else:
+	total_bill += paypal_info.price_per_table*(company.number_of_tables-1)
+
+    print total_bill
+
+    # If they are a sponsor, add the fee of their specific sponsorship package as well
+    if sponsorship:
+        total_bill += sponsorship.price
+        total_bill -= sponsorship.discount
+
+    print total_bill
+    if company.is_non_profit:
+	total_bill *= 0.85
     return paypal_info.email, paypal_info.item_name, total_bill
 
 
-# A complicated and student function that parses the 
+# A complicated and student function that parses the CompanyProfileForm
 # and saves all the information into a user and a companyprofile.
 # It parses the post request for all the form information, as well as
 # the logo, and representative names.
@@ -78,7 +122,7 @@ def company_register(request):
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
         user_form = UserForm(request.POST, request.FILES)
-        profile_form = (request.POST, request.FILES)
+        profile_form = CompanyProfileForm(request.POST, request.FILES)
         rep_formset = RepFormSet(request.POST)
 
         # If the two forms are valid...
@@ -106,8 +150,14 @@ def company_register(request):
             else:
                 profile.logo = 'uploads/default_icons/Company_icon.png'
 
-            # Now we save the CompanyProfile model instance.
             profile.save()
+
+
+	    if 'sponsorshipitem' in  request.POST:
+	   	for item in request.POST.getlist('sponsorshipitem'):
+		    profile.sponsorshipitem.add(SponsorshipItem.objects.get(name=item))
+            # Now we save the CompanyProfile model instance.
+            
 
             # Create a bunch of representative objects
             new_reps = []
@@ -115,20 +165,24 @@ def company_register(request):
             for rep_form in rep_formset:
                 rep = rep_form.cleaned_data.get('rep')
                 is_alumni = rep_form.cleaned_data.get('is_alumni')
-
+		days_attending = rep_form.cleaned_data.get('days_attending')
                 if rep:
-                    new_rep = CompanyRep(user=user, rep=rep, is_alumni=is_alumni)
+                    new_rep = CompanyRep(user=user, rep=rep, is_alumni=is_alumni, company=profile.company, days_attending=days_attending)
                     new_reps.append(new_rep)
 
             CompanyRep.objects.bulk_create(new_reps)
 
             # Associate the new reps with the CompanyProfile 
             for rep in CompanyRep.objects.filter(user=user):
-                profile.reps += '+ '+rep.rep+'\n'
+                profile.reps.add(rep)
             for rep in CompanyRep.objects.filter(user=user, is_alumni=True):
-                profile.reps_alumni +='+ '+rep.rep+'\n'
+                profile.reps_alumni.add(rep)
             
             profile.number_of_representatives = len(new_reps)
+	    profile.number_of_tables = profile.friday_number_of_tables + profile.saturday_number_of_tables
+	    if profile.sponsor:
+		sponsor = SponsorshipPackage.objects.get(title=profile.sponsor)
+	   	profile.number_of_tables += sponsor.num_free_tables
             email, item, bill = get_bill(profile)
             profile.total_bill = bill 
             new_user = profile.save()
@@ -161,7 +215,7 @@ def company_register(request):
     # These forms will be blank, ready for user input.
     else:
         user_form = UserForm()
-        profile_form = ()
+        profile_form = CompanyProfileForm()
         rep_formset = RepFormSet()
 
     context["form"] = {'user_form': user_form, 'profile_form': profile_form, 'registered': registered, 'rep_formset':rep_formset}
@@ -310,7 +364,7 @@ def edit_profile(request):
         pass
 
     if is_company: 
-        form = Edit(request.POST or None, initial={'company':user.companyprofile.company, 
+        form = EditCompanyProfileForm(request.POST or None, initial={'company':user.companyprofile.company, 
                                                                 'public_phone':user.companyprofile.phone_number,
                                                                 'company_website':user.companyprofile.company_website,
                                                                 'logo':user.companyprofile.logo,
@@ -319,8 +373,9 @@ def edit_profile(request):
                                                                 'grade_level_wanted':user.companyprofile.grade_level_wanted,
                                                                 'company_bio':user.companyprofile.company_bio,
                                                                 'sponsor':user.companyprofile.sponsor,
-                                                                'number_of_tables':user.companyprofile.number_of_tables,
-                                                                'sponsor':user.companyprofile.sponsor,
+								'sponsorshipitem':[s.name for s in user.companyprofile.sponsorshipitem.all()],
+                                                                'friday_number_of_tables':user.companyprofile.friday_number_of_tables,
+                                                                'saturday_number_of_tables':user.companyprofile.saturday_number_of_tables,
                                                                 'interview_rooms_friday': user.companyprofile.interview_rooms_friday,
                                                                 'interview_friday_from': user.companyprofile.interview_friday_from,
                                                                 'interview_friday_to':user.companyprofile.interview_friday_to,
@@ -329,7 +384,7 @@ def edit_profile(request):
                                                                 'interview_saturday_to:':user.companyprofile.interview_saturday_to,
                                                                 })
         rep_links = CompanyRep.objects.filter(user=user).order_by('rep')
-        rep_data = [{'rep': l.rep, 'is_alumni': l.is_alumni}
+        rep_data = [{'rep': l.rep, 'is_alumni': l.is_alumni, 'days_attending':l.days_attending}
                     for l in rep_links]
         rep_formset = RepFormSet(initial=rep_data)
         
@@ -354,7 +409,7 @@ def edit_profile(request):
     if request.method == 'POST':
         if is_company:
             # RepFormSet is the thing that allows us to associate many reps with one company
-            form = Edit(request.POST, instance=user.companyprofile)
+            form = EditCompanyProfileForm(request.POST, instance=user.companyprofile)
             rep_formset = RepFormSet(request.POST)
             if form.is_valid() and rep_formset.is_valid():
                 profile = form.save(commit=False)
@@ -366,25 +421,29 @@ def edit_profile(request):
                 if 'logo' in request.FILES:
                     profile.logo = request.FILES['logo']
                 profile.save()
+		if profile.sponsor:
+		    profile.number_of_tables = profile.friday_number_of_tables + profile.saturday_number_of_tables +  SponsorshipPackage.objects.get(title=profile.sponsor).num_free_tables
 
                 # Representative parsing and saving
                 new_reps = []
                 for rep_form in rep_formset:
                     rep = rep_form.cleaned_data.get('rep')
                     is_alumni = rep_form.cleaned_data.get('is_alumni')
-
+		    days_attending = rep_form.cleaned_data.get('days_attending')
                     if rep:
-                        new_rep = CompanyRep(user=user, rep=rep, is_alumni=is_alumni)
+                        new_rep = CompanyRep(user=user, rep=rep, is_alumni=is_alumni, company=user.companyprofile.company, days_attending=days_attending)
                         new_reps.append(new_rep)
 
                 CompanyRep.objects.filter(user=user).delete()
                 CompanyRep.objects.bulk_create(new_reps)
-                profile.reps = ""
-                profile.reps_alumni = ""
                 for rep in CompanyRep.objects.filter(user=user):
-                    profile.reps += '+ '+rep.rep+'\n'
+                    profile.reps.add(rep)
                 for rep in CompanyRep.objects.filter(user=user, is_alumni=True):
-                    profile.reps_alumni +='+ '+rep.rep+'\n'
+                    profile.reps_alumni.add(rep)
+		profile.sponsorshipitem.clear()
+		if 'sponsorshipitem' in request.POST:
+		    for item in request.POST.getlist('sponsorshipitem'):
+			profile.sponsorshipitem.add(SponsorshipItem.objects.get(name=item))
                 profile.number_of_representatives = len(new_reps)
                 profile.save()
                 user.save()
@@ -753,7 +812,7 @@ def view_that_asks_for_money(request):
         "business": paypal_account,
         "amount": str(bill),
         "item_name": "RPI Career Fair Registration 2016",
-        "invoice": request.user.companyprofile.company,
+        "invoice": "invoice_0_"+request.user.companyprofile.company,
         "notify_url": NGROK+"/paypal-ipn/",
         "return_url": NGROK+"/return_paypal/",
         "cancel_return": NGROK+"/dashboard/prepaymentscreen",
@@ -769,10 +828,9 @@ def view_that_asks_for_money(request):
     return render(request, "pages/prepaymentscreen.html", context)
 
 def process_me(request):
-    print dir(request.POST)
     valid_ipn_received.connect(show_me_the_money)
 
 @csrf_exempt
 def return_me(request):
-    print dir(request.POST)
+    print "succcess"
     return render_to_response('pages/success.html',{},RequestContext(request))

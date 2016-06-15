@@ -22,9 +22,4 @@ class Migration(migrations.Migration):
             name='is_company',
             field=models.BooleanField(default=True),
         ),
-        migrations.AddField(
-            model_name='companyprofile',
-            name='uid',
-            field=models.IntegerField(default=id),
-        ),
     ]

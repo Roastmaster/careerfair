@@ -112,12 +112,17 @@
                                     </div>
                                     <div class="row">
                                         <div class="span4">
-                                            <label>How many tables are you requesting? (Choose between 1 and 3) <span id="butimarecruiter">(Required)</span></label>
-                                                {{form.number_of_tables.errors}}
-                                                {{form.number_of_tables}}
+                                            <label>How many tables are you requesting on friday? <span id="butimarecruiter">(Required)</span></label>
+                                                {{form.friday_number_of_tables.errors}}
+                                                {{form.friday_number_of_tables}}
+                                        </div>
+                                        <div class="span4">
+                                            <label>How many tables are you requesting on saturday? <span id="butimarecruiter">(Required)</span></label>
+                                                {{form.saturday_number_of_tables.errors}}
+                                                {{form.saturday_number_of_tables}}
                                         </div>
                                     </div>
-                                    <div class="row">
+				    <div class="row">
                                         <div class="span4">
                                             <label>Will you be needing interview rooms on Friday?  If so, how many?</label>
                                                 {{form.interview_rooms_friday.errors}}
@@ -142,11 +147,16 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="span8">
+                                        <div class="span4">
                                             <label>Would you like to sponsor the career fair? If so, pick the sponsorship level you are interested in from below <a href="/sponsor">(more info)</a>:</label>
                                                 {{form.sponsor.errors}}
                                                 {{form.sponsor}}
                                         </div>
+				<div class="span4">
+					<label>Would you like to pick a sponsorship item?  If so pick the item(s) that interests you from below. <a href="/sponsor">(more info)</a></label>
+					{{form.sponsorshipitem.errors}}
+					{{form.sponsorshipitem}}
+				</div>
                                       </div>
                                     <div class="row">
                                         <div class="span8">
@@ -163,7 +173,8 @@
                                                                 {{ error|escape }}
                                                             {% endfor %}
                                                         {% endif %}
-
+							{{ rep_form.days_attending.errors }}
+							{{ rep_form.days_attending }}
                                                         {{ rep_form.is_alumni }}
                                                         {% if rep_form.is_alumni.errors %}
                                                             {% for error in rep_form.is_alumni.errors %}

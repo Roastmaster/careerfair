@@ -61,7 +61,7 @@
                                         {% editable member.position member.bio %}
                                         <h4>{{member.name}}</h4>
                                         <div class="profile_title"> {{member.position}} </div>
-                                        <p>{{member.bio}}</p>
+                                        <p>{{member.bio|richtext_filters|safe}}</p>
                                         {% endeditable %}
                                     </div>
                                 </div> 

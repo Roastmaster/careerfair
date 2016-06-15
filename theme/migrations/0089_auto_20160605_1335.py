@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
             name='sponsor',
             field=models.BooleanField(default=False),
         ),
-        migrations.AlterField(
+        migrations.AddField(
             model_name='companyprofile',
             name='number_of_representatives',
             field=models.IntegerField(default=1),

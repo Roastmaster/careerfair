@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.files.images import get_image_dimensions
 from multiselectfield import MultiSelectField
-from models import StudentProfile, StudentSearchFormModel, SponsorshipPackage
+from models import CompanyRep, StudentProfile, CompanyProfile, StudentSearchFormModel, SponsorshipPackage, SponsorshipItem
 from models import DAY_CHOICES, GRADE_LEVEL_CHOICES, MAJOR_CHOICES, VOLUNTEER_CHOICES
 from django.forms.formsets import BaseFormSet
 
@@ -35,6 +35,7 @@ class StudentProfileForm(forms.ModelForm):
     grade_level = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
     website = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "linkedin, portfolio, personal site, etc"}), required=False)
     GPA = forms.DecimalField(widget=forms.TextInput(), required=False)
+    picture = forms.FileField(widget=forms.FileInput(attrs={'accept':'image/*'}), required=False)
 
     class Meta:
         model = StudentProfile
@@ -51,8 +52,8 @@ class StudentProfileForm(forms.ModelForm):
 
             resume = self.cleaned_data.get('image',False)
             if resume:
-                if resume._size > 8*1024*1024:
-                    raise ValidationError("Resume file too large ( > 8mb )")
+                if resume._size > 2*1024*1024:
+                    raise ValidationError("Resume file too large ( > 2mb )")
                 return resume
 
         except AttributeError:
@@ -85,8 +86,8 @@ class StudentProfileForm(forms.ModelForm):
             #validate file size
             image = self.cleaned_data.get('image',False)
             if image:
-                if image._size > 1*1024*1024:
-                    raise ValidationError("Image file too large ( > 1mb )")
+                if image._size > 6*1024*1024:
+                    raise ValidationError("Image file too large ( > 6mb )")
                 return image
 
         except AttributeError:
@@ -97,6 +98,95 @@ class StudentProfileForm(forms.ModelForm):
 
         return picture
 
+
+
+class CompanyProfileForm(forms.ModelForm):
+    company = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Company name (required)'}))
+    mood = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'How are you feeling today?'}), required=False)
+    company_bio = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'A short blurb about who your company is and what you do.'}), required=False)
+    phone_number = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Phone number'}), required=False)
+    public_email = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Public email '}), required=False)
+    company_website = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Application website'}), required=False)
+    majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
+    days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
+    grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
+    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
+    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
+    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect, required=False)
+    sponsorshipitem = forms.MultipleChoiceField(choices=[(s.name, s.name) for s in SponsorshipItem.objects.all()], widget=forms.SelectMultiple(), required=False)
+    interview_friday_from = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "12:00pm"}),required=False)
+    interview_friday_to = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "1:00pm"}), required=False)
+    interview_saturday_from = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "12:00pm"}),required=False)
+    interview_saturday_to = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "1:00pm"}), required=False)
+    logo = forms.FileField(widget=forms.FileInput(attrs={'accept':'image/*'}), required=False)
+    class Meta:
+        model = CompanyProfile
+        fields = ('company', 'public_email', 'phone_number', 'company_website' , 'logo' , 
+            'days_attending', 'majors_wanted', 'grade_level_wanted', 'company_bio',
+            "mood", 'friday_number_of_tables', 'saturday_number_of_tables', 'sponsor', 'sponsorshipitem', 'interview_rooms_friday', 
+            'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
+            'interview_saturday_from' , 'interview_saturday_to')
+
+    def clean_friday_number_of_tables(self):
+	friday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	try:
+	    if friday_number_of_tables < 0:
+	         raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	except AttributeError:
+	    pass
+
+	except TypeError:
+	    raise forms.ValidationError("We don't recognize that as a number, maybe take out the commas?")
+	
+	return friday_number_of_tables
+
+    def clean_saturday_number_of_tables(self):
+	saturday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	try:
+            if saturday_number_of_tables < 0:
+	        raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+ 	except AttributeError:
+	    pass
+	
+	except TypeError:
+	    raise forms.ValidationError("That's not a number")
+
+	return saturday_number_of_tables
+    
+    def clean_picture(self):
+        picture = self.cleaned_data['picture']
+
+        try:
+            w, h = get_image_dimensions(picture)
+
+            #validate dimensions
+            max_width = max_height = 2400
+            if w > max_width or h > max_height:
+                raise forms.ValidationError(
+                    u'Please use an image that is '
+                    '%s x %s pixels or smaller.' % (max_width, max_height))
+
+            #validate content type
+            main, sub = picture.content_type.split('/')
+            if not (main == 'image' and sub in ['jpeg', 'pjpeg', 'gif', 'png']):
+                raise forms.ValidationError(u'Please use a JPEG, '
+                    'GIF or PNG image.')
+
+            #validate file size
+            image = self.cleaned_data.get('image',False)
+            if image:
+                if image._size > 4*1024*1024:
+                    raise forms.ValidationError("Image file too large ( > 4mb )")
+                return image
+
+        except AttributeError:
+            pass
+
+        except TypeError:
+            return picture
+
+
+        return picture
 
 class RepForm(forms.Form):
     """
@@ -109,18 +199,17 @@ class RepForm(forms.Form):
                     }),
                     required=False)
     is_alumni = forms.BooleanField(required=False)
+    days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=DAY_CHOICES)
+    class Meta:
+	model = CompanyRep
+	fields = ('rep', 'is_alumni', 'days_attending')
 
 class BaseRepFormSet(BaseFormSet):
     def clean(self):
-        """
-        Adds validation to check that no two links have the same anchor or URL
-        and that all links have both an anchor and URL.
-        """
         if any(self.errors):
             return
 
         reps = []
-        duplicates = False
 
         for form in self.forms:
             if form.cleaned_data:
@@ -132,13 +221,94 @@ class BaseRepFormSet(BaseFormSet):
                         duplicates = True
                     reps.append(rep)
 
-                if duplicates:
-                    raise forms.ValidationError(
-                        'Links must have unique anchors and URLs.',
-                        code='duplicate_links'
-                    )
+	if len(reps) == 0:
+            raise forms.ValidationError("You need to have at least one rep!")
+
+class EditCompanyProfileForm(forms.ModelForm):
+    company = forms.CharField(widget=forms.TextInput())
+    majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
+    days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
+    grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
+    sponsorshipitem = forms.MultipleChoiceField(choices=[(s.name, s.name) for s in SponsorshipItem.objects.all()], widget=forms.SelectMultiple(), required=False)
+    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect, required=False)
+    logo = forms.FileField(widget=forms.FileInput(attrs={'accept':'image/*'}), required=False)
+    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
+    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
+    class Meta:
+        model = CompanyProfile
+        fields = ('company', 'phone_number', 'company_website' , 'logo' , 
+            'days_attending', 'majors_wanted', 'grade_level_wanted', 'company_bio', 'friday_number_of_tables', 'saturday_number_of_tables',
+            'sponsor', 'sponsorshipitem',  'interview_rooms_friday', 
+            'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
+            'interview_saturday_from' , 'interview_saturday_to')
+
+    def clean_friday_number_of_tables(self):
+	friday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	try:
+	    if friday_number_of_tables < 0:
+	         raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	except AttributeError:
+	    pass
+
+	except TypeError:
+	    raise forms.ValidationError("We don't recognize that as a number, maybe take out the commas?")
+	
+	return friday_number_of_tables
+
+    def clean_saturday_number_of_tables(self):
+	saturday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	try:
+            if saturday_number_of_tables < 0:
+	        raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+ 	except AttributeError:
+	    pass
+	
+	except TypeError:
+	    raise forms.ValidationError("That's not a number")
+
+	return saturday_number_of_tables
+    
+    def clean_picture(self):
+        picture = self.cleaned_data['picture']
+
+        try:
+            w, h = get_image_dimensions(picture)
+
+            #validate dimensions
+            max_width = max_height = 2400
+            if w > max_width or h > max_height:
+                raise forms.ValidationError(
+                    u'Please use an image that is '
+                    '%s x %s pixels or smaller.' % (max_width, max_height))
+
+            #validate content type
+            main, sub = picture.content_type.split('/')
+            if not (main == 'image' and sub in ['jpeg', 'pjpeg', 'gif', 'png']):
+                raise forms.ValidationError(u'Please use a JPEG, '
+                    'GIF or PNG image.')
+
+            #validate file size
+            image = self.cleaned_data.get('image',False)
+            if image:
+                if image._size > 4*1024*1024:
+                    raise forms.ValidationError("Image file too large ( > 4mb )")
+                return image
+
+        except AttributeError:
+            pass
+
+        except TypeError:
+            return picture
 
 
+        return picture
+
+
+class CompanySearchForm(forms.ModelForm):
+    majors_wanted = forms.ChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
+    class Meta:
+        model = CompanyProfile
+        fields = ('company', 'days_attending', 'majors_wanted', 'grade_level_wanted')
 
 class StudentSearchForm(forms.ModelForm):
     major_wanted = forms.ChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
@@ -356,7 +526,7 @@ class EntriesForm(forms.Form):
         for field in self.form_fields:
             if self.cleaned_data["field_%s_export" % field.strip("_")]:
                 field_indexes[field] = len(field_indexes)
-                if field == "picture":
+                if field == "logo":
                     file_field_ids.append(field)
         num_columns = len(field_indexes)
         num_columns += 1
@@ -373,7 +543,6 @@ class EntriesForm(forms.Form):
 
         for profile in CompanyProfile.objects.all():
             for field in CompanyProfile._meta.get_fields():
-                print field, profile.id
                 if profile.id != current_entry:
                     if valid_row and current_row is not None:
                         if not csv:
@@ -386,7 +555,6 @@ class EntriesForm(forms.Form):
                 field_id = profile.id
                 filter_type = "field_%s_filter" % field.name.strip("_")
                 filter_args = None
-                print "filter type: ", filter_type
                 if filter_type:
                     if filter_type == FILTER_CHOICE_BETWEEN:
                         f, t = "field_%s_from" % field.name.strip("_"), "field_%s_to" % field.name.strip("_")
@@ -396,7 +564,6 @@ class EntriesForm(forms.Form):
                     filter_args = field_name
                     if filter_args:
                         filter_args = [filter_args]
-                print "Filter_args: ", filter_args
                 if filter_args:
                 # Convert dates before checking filter.
                     if field_id in date_field_ids:
@@ -406,10 +573,6 @@ class EntriesForm(forms.Form):
                     else:
                         filter_args.append(field_value)
                     filter_func = FILTER_FUNCS[filter_type]
-                    print filter_type
-                    print filter_func
-                    print "filter_args"
-                    print filter_args
                     if not filter_func(*filter_args):
                         valid_row = False
                  # Create download URL for file fields.
@@ -423,10 +586,15 @@ class EntriesForm(forms.Form):
                 try:
                     #print field_indexes
                     #print field.name.strip('_')
+		    from django.db.models.fields.related import ManyToManyField
                     if isinstance(field_value, list):
-                        print field_value
+			print "wtf", field_value
                         field_value = ", ".join(field_value)
-                    current_row[field_indexes[field.name.strip('_')]] = str(field_value)
+		    elif isinstance(field, ManyToManyField):
+			print "do it"	
+			field_value = ", ".join([rep.rep for rep in field_value.all()])
+			print field_value
+		    current_row[field_indexes[field.name.strip('_')]] = str(field_value)
                 except KeyError:
                     #print "something bad happened"
                     pass

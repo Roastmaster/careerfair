@@ -17,10 +17,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='volunteer',
-            name='user',
-            field=models.OneToOneField(default=datetime.datetime(2016, 5, 30, 18, 53, 2, 845938, tzinfo=utc), on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
-            preserve_default=False,
-        ),
     ]

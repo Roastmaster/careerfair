@@ -12,18 +12,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='companyprofile',
-            name='alumni_reps',
-        ),
         migrations.AddField(
             model_name='companyprofile',
             name='alumni_reps',
             field=models.TextField(default=''),
-        ),
-        migrations.RemoveField(
-            model_name='companyprofile',
-            name='reps',
         ),
         migrations.AddField(
             model_name='companyprofile',

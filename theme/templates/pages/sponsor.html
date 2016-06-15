@@ -14,11 +14,11 @@
                 <section>
                 	<div class="row">
                     	<div class="span12">
-                        	<h2 class="title"><span>{{page.sponsoruspage.superheading}}</span></h2> 
+                        	<h2 class="title"><span>{{page.sponsoruspage.super_heading}}</span></h2> 
                         </div>
                     </div>
                     <div class="span1"></div>
-                    <div class="span10">{{page.sponsoruspage.blurb}}</div>
+                    <div class="span10">{{page.sponsoruspage.blurb|richtext_filters|safe}}</div>
 
                     <div class="row sponsor">
                         {% for package in page.sponsoruspage.sponsorship_package.all %}
@@ -34,7 +34,7 @@
                 	</div>
                     <div class="row">
                     <div class="span4"></div>
-                    <div class="span4">{{page.sponsoruspage.contact}}</div>
+                    <div class="span4">{{page.sponsoruspage.contact|richtext_filter|safe}}</div>
                     </div>
                 </section>
                 </div>

@@ -17,9 +17,4 @@ class Migration(migrations.Migration):
             model_name='companyprofile',
             name='id',
         ),
-        migrations.AlterField(
-            model_name='companyprofile',
-            name='company_uid',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
-        ),
     ]

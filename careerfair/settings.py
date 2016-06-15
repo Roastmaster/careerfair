@@ -98,7 +98,7 @@ USE_MODELTRANSLATION = False
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.rpicareerfair.org','.rpicareerfair.org.','107.170.135.42']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -124,8 +124,8 @@ LANGUAGES = (
 # A boolean that turns on/off debug mode. When set to ``True``, stack traces
 # are displayed for error pages. Should always be set to ``False`` in
 # production. Best set to ``True`` in local_settings.py
-DEBUG = True
-TEMPLATE_DEBUG = True 
+DEBUG = False
+TEMPLATE_DEBUG = False 
 
 # Whether a user's session cookie expires when the Web browser is closed.
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -171,7 +171,6 @@ STATIC_URL = "/static/"
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
 STATIC_ROOT = os.path.join(PROJECT_ROOT, STATIC_URL.strip("/"))
-print STATIC_ROOT
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -225,7 +224,6 @@ if DJANGO_VERSION < (1, 9):
 # below attributes
 PAYPAL_TEST = False
 PAYPAL_WPP_USER = "roastmiester_api1.gmail.com"
-PAYPAL_WPP_PASSWORD = 
 PAYPAL_WPP_SIGNATURE = "AFcWxV21C7fd0v3bYYYRCpSSRl31AsBX0cdjJ1xtyicN4SrfgMY88HGy"
 
 INSTALLED_APPS = (
@@ -351,10 +349,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # # Host for sending e-mail.
 EMAIL_HOST =  'smtp.gmail.com'
-EMAIL_HOST_USER = 'm.ruben1234@gmail.com'
-EMAIL_HOST_PASSWORD = 
+EMAIL_HOST_USER = 'bot.rpicareerfair2016@gmail.com'
+EMAIL_HOST_PASSWORD = 'Exported Pizza 1' 
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'm.ruben1234@gmail.com'
+DEFAULT_FROM_EMAIL = 'bot.careerfair2016@gmail.com'
 
 # Port for sending e-mail.
 EMAIL_PORT = 587

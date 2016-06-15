@@ -1,11 +1,11 @@
 from django.conf.urls import url, include
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib.auth.views import password_reset, password_reset_done, password_reset_confirm, password_reset_complete
+from django.shortcuts import redirect
 import views
-from mezzanine.pages.views import page
 
 urlpatterns =  i18n_patterns(
-    url("^$", page, name="home"), 
+    url(r'^favicon\.ico$', redirect, {'url': '/static/media/uploads/static images/favicon.ico'}),
     url(r'^company-registration/$', views.company_register, name='company-register'), 
     url(r'^student-registration/$', views.student_register, name='student-register'), 
     url(r'^company-slug/(?P<uid>[0-9]+).html/$', views.company_redirect, name='company-slug'),

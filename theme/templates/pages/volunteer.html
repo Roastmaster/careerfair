@@ -6,6 +6,21 @@
 {% block main %}
 {{ block.super }}
  {% block all_content %}
+<head>
+<script type="text/javascript">
+$(document).ready(function () {
+	$('option').mousedown(function(e) {
+   		e.preventDefault();
+    	$(this).prop('selected', !$(this).prop('selected'));
+    return false;
+	});
+	$('.rep-formset').formset({
+        addText: 'Add representative',
+        deleteText: 'remove'
+    });
+});
+</script>
+</head>
     <div class="page_container">
         <div class="wrap">
             <div class="container">

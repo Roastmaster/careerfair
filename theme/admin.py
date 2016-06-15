@@ -20,7 +20,7 @@ from models import FAQPage
 from models import AgendaPage
 from models import ContactPage
 from models import PricingPage
-
+from models import TipPage
 
 from models import Slide
 from models import IconBlurb
@@ -30,8 +30,10 @@ from models import StaffProfile
 from models import Question
 
 from models import StudentProfile
+from models import CompanyProfile
 from models import PayPalInfo
 from models import SponsorshipPackage
+from models import SponsorshipItem
 
 from forms import EntriesForm
 
@@ -46,6 +48,10 @@ from django.contrib.auth.models import User
 # USER EXTENSIONS:
 #
 
+class CompanyProfileInLine(admin.StackedInline):
+	model = CompanyProfile
+	can_delete = False
+	verbose_name_plural = "companyprofile"
 
 class StudentProfileInLine(admin.StackedInline):
 	model = StudentProfile
@@ -53,7 +59,7 @@ class StudentProfileInLine(admin.StackedInline):
 	verbose_name_plural = "studentprofile"
 
 class UserAdmin(BaseUserAdmin):
-	inlines = (StudentProfileInLine,)
+	inlines = (CompanyProfileInLine,StudentProfileInLine)
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
@@ -217,7 +223,10 @@ admin.site.register(PricingPage, PageAdmin)
 admin.site.register(RegistrationPage, RegistrationPageAdmin)
 admin.site.register(SponsorUsPage, SponsorUsPageAdmin)
 admin.site.register(FAQPage, FAQPageAdmin)
+admin.site.register(TipPage, PageAdmin)
 admin.site.register(StudentProfile)
+admin.site.register(CompanyProfile)
 admin.site.register(PayPalInfo)
 admin.site.register(SponsorshipPackage)
 admin.site.register(ArmoryTableData)
+admin.site.register(SponsorshipItem)
