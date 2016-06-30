@@ -147,8 +147,10 @@ MAJOR_CHOICES_FLAT = [major[0] for major in MAJOR_CHOICES]
 #
 
 class SponsorUsPage(Page, RichText):
-    super_heading = models.CharField(max_length=100)
-    blurb = RichTextField(max_length=3000, help_text="Some paragraph of text above the segment of the page where the sponsorship packages are listed")
+    misc_items = models.CharField(max_length=100)
+    misc_items_blurb = RichTextField(max_length=3000, help_text="Some paragraph of text above the segment of the page where the sponsorship packages are listed")
+    page_header = models.CharField(max_length=100, default="Sponoorship")
+    page_blurb = RichTextField(max_length=4000, help_text="Some paragraph explaining the beautiful of sponsorhsips")
     contact = RichTextField(max_length=1000)
 
 class SponsorshipPackage(models.Model):
@@ -238,7 +240,6 @@ class CompanyProfile(models.Model):
     days_attending = MultiSelectField(choices=DAY_CHOICES)
     majors_wanted = MultiSelectField(choices=MAJOR_CHOICES)
     grade_level_wanted = MultiSelectField(choices=GRADE_LEVEL_CHOICES)
-    mood = models.TextField(max_length=1000, blank=True)
     company_bio = models.TextField(max_length=1000, blank=True)
     has_submitted_payment = models.BooleanField(default=False)
     how_are_you_feeling_today = models.CharField(max_length=1000, blank=True)
@@ -249,10 +250,12 @@ class CompanyProfile(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
     reps = models.ManyToManyField(CompanyRep, related_name="reps")
-    reps_alumni = models.ManyToManyField(CompanyRep, related_name="alumni")
+    reps_alumni = models.ManyToManyField(CompanyRep, related_name="alumni", blank=True)
     number_of_representatives = models.IntegerField(default=1)
+    saturday_representatives = models.ManyToManyField(CompanyRep, blank=True, related_name="sat_reps")
+    friday_representatives = models.ManyToManyField(CompanyRep, blank=True, related_name="fri_reps")
     number_of_tables = models.IntegerField(default=0)
-    sponsor = models.CharField(max_length=100, default="", blank=True)
+    sponsor = models.CharField(max_length=100, blank=True)
     total_bill = models.IntegerField(null=True, default=500)
     interview_rooms_friday = models.IntegerField(null=True, default=0)
     interview_friday_from = models.CharField(null=True, blank=True, max_length=15)
@@ -260,9 +263,9 @@ class CompanyProfile(models.Model):
     interview_rooms_saturday = models.IntegerField(null=True, default=0)
     interview_saturday_from = models.CharField(null=True, blank=True, max_length=15)
     interview_saturday_to = models.CharField(null=True, blank=True,max_length=15)
-    tables = models.TextField(default='[]', null=True)
+    tables = models.TextField(default='[]', null=True, blank=True)
     is_non_profit = models.BooleanField(default=False)
-    sponsorshipitem = models.ManyToManyField(SponsorshipItem, related_name="sponsorshipitem")  
+    sponsorshipitem = models.ManyToManyField(SponsorshipItem, related_name="sponsorshipitem", blank=True)  
     def __unicode__ (self):
         return self.company
 
@@ -300,7 +303,7 @@ class RegistrationPage(Page, RichText):
     email_from = models.EmailField(_("From address"), max_length=254,
         help_text=_("The address the email will be sent from"), blank=True)
     email_subject = models.CharField(_("Subject"), max_length=200, blank=True)
-    email_message = models.TextField(_("Message"), blank=True,
+    email_message = RichTextField(_("Message"), blank=True,
         help_text=_("Emails sent based on the above options will contain "
                     "each of the form fields entered. You can also enter "
                     "a message here that will be included in the email."))

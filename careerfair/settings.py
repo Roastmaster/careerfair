@@ -98,7 +98,7 @@ USE_MODELTRANSLATION = False
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ['.rpicareerfair.org','.rpicareerfair.org.','107.170.135.42']
+ALLOWED_HOSTS = ['www.rpicareerfair.org','careerfair.rpi.edu','.rpicareerfair.org','rpicareerfair.org.','107.170.135.42']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -254,7 +254,7 @@ INSTALLED_APPS = (
     'paypal.standard',
     'paypal.pro',
 )
-
+MAX_USERNAME_LENGTH = 100
 # List of middleware classes to use. Order is important; in the request phase,
 # these middleware classes will be applied in the order given, and in the
 # response phase the middleware will be applied in reverse order.

@@ -60,7 +60,7 @@
                         <div class="span2">
                         </div>
                         <div class="span8">
-                            <h2>Representatives ({{user.companyprofile.number_of_representatives}})<span id="butimarecruiter">(${{paypal.price_per_rep}} per rep per day beyond the first)</span></h2>
+                            <h2>Representatives ({{user.companyprofile.number_of_representatives}})<span id="butimarecruiter">(${{paypal.price_per_rep}} per rep per day beyond the first two)</span></h2>
 			{% for rep in user.companyprofile.reps.all %}
 			{{rep.rep}}<br>
 			{% endfor %}
@@ -99,6 +99,15 @@
                             {% for item in user.companyprofile.sponsorshipitem.all %}{{item}}<br> {% endfor %}
                         </div>
                     </div>
+                    <div id="ruben_buffer"></div>
+		   <div class="row">
+			<div class="span2">
+			</div>
+			<div class="span8">
+				<h2>Total:</h2>
+				<span><p>${{user.companyprofile.total_bill}}</p></span>
+			</div>
+		   </div>
                     <div id="ruben_buffer"></div>
                             {% endif %}
                     <div id="ruben_buffer"></div>

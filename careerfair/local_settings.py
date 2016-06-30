@@ -6,7 +6,7 @@
 # immediately.
 
 DEBUG = False
-ALLOWED_HOSTS = ['rpicareerfair.org', 'rpicareerfair.org.','107.170.135.42']
+ALLOWED_HOSTS = ['careerfair.rpi.edu', 'www.rpicareerfair.org', '.rpicareerfair.org', 'rpicareerfair.org', 'rpicareerfair.org.','107.170.135.42']
 # Make these unique, and don't share it with anybody.
 SECRET_KEY = "t@u3guab)i0c8ulf1l6=vgcstpk(4(3wn#p0vu+proea82+%sb"
 NEVERCACHE_KEY = "t&2-slxgfx&t!ix(n5q!=x#iw*@l3xesc9x73^(=va@*7vf+(@"

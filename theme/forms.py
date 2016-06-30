@@ -110,9 +110,9 @@ class CompanyProfileForm(forms.ModelForm):
     majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
     days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
     grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
-    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
-    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
-    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect, required=False)
+    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value':0}), required=False)
+    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value':0}), required=False)
+    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect(), required=False)
     sponsorshipitem = forms.MultipleChoiceField(choices=[(s.name, s.name) for s in SponsorshipItem.objects.all()], widget=forms.SelectMultiple(), required=False)
     interview_friday_from = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "12:00pm"}),required=False)
     interview_friday_to = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "1:00pm"}), required=False)
@@ -132,6 +132,14 @@ class CompanyProfileForm(forms.ModelForm):
 	try:
 	    if friday_number_of_tables < 0:
 	         raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	    try:    
+		days_attending = self.cleaned_data['days_attending']
+	   	if not 'Friday' in days_attending and friday_number_of_tables > 0:
+			raise forms.ValidationError("You can't have a table on a day you aren't attending!")
+		elif 'Friday' in days_attending and friday_number_of_tables <= 0:
+			raise forms.ValidationError("You need to have at least one table on a day you are attending!")
+	    except KeyError:
+		pass
 	except AttributeError:
 	    pass
 
@@ -141,10 +149,18 @@ class CompanyProfileForm(forms.ModelForm):
 	return friday_number_of_tables
 
     def clean_saturday_number_of_tables(self):
-	saturday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	saturday_number_of_tables = self.cleaned_data['saturday_number_of_tables']
 	try:
             if saturday_number_of_tables < 0:
 	        raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	    try:
+		days_attending = self.cleaned_data['days_attending']
+	    	if not 'Saturday' in days_attending and saturday_number_of_tables > 0:
+		    raise forms.ValidationError("You can't have a table on a day youa aren't attending!")
+		elif 'Saturday' in days_attending and saturday_number_of_tables <= 0:
+		    raise forms.ValidationError("You need to have at least one table on a day you are attending!")
+	    except KeyError:
+		pass
  	except AttributeError:
 	    pass
 	
@@ -229,11 +245,11 @@ class EditCompanyProfileForm(forms.ModelForm):
     majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
     days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
     grade_level_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
-    sponsorshipitem = forms.MultipleChoiceField(choices=[(s.name, s.name) for s in SponsorshipItem.objects.all()], widget=forms.SelectMultiple(), required=False)
-    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect, required=False)
+    sponsorshipitem = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=[(s.name, s.name) for s in SponsorshipItem.objects.all()], required=False)
     logo = forms.FileField(widget=forms.FileInput(attrs={'accept':'image/*'}), required=False)
-    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
-    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}))
+    sponsor = forms.ChoiceField(choices=[(s.title, s.title) for s in SponsorshipPackage.objects.all()], widget=forms.RadioSelect(), required=False)
+    friday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}), required=False)
+    saturday_number_of_tables = forms.IntegerField(widget=forms.TextInput(attrs={'value': 0}), required=False)
     class Meta:
         model = CompanyProfile
         fields = ('company', 'phone_number', 'company_website' , 'logo' , 
@@ -242,11 +258,25 @@ class EditCompanyProfileForm(forms.ModelForm):
             'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
             'interview_saturday_from' , 'interview_saturday_to')
 
+    def clean_sponsorship(self):
+	sponsor = self.cleaned_data['sponsor']
+	if len(sponsor) > 1:
+	    raise forms.ValidationError("You can't pick more than one sponosrship level")
+	return sponsor
+
     def clean_friday_number_of_tables(self):
 	friday_number_of_tables = self.cleaned_data['friday_number_of_tables']
 	try:
 	    if friday_number_of_tables < 0:
 	         raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	    try:
+	    	days_attending = self.cleaned_data['days_attending']
+	    	if not 'Friday' in days_attending and friday_number_of_tables > 0:
+		    raise forms.ValidationError("You can't have a table on a day youaren't attending!")
+		elif 'Friday' in days_attending and friday_number_of_tables <= 0:
+			raise forms.ValidationError("You need to have at least one table on a day you are attending!")
+	    except KeyError:
+		pass
 	except AttributeError:
 	    pass
 
@@ -256,10 +286,18 @@ class EditCompanyProfileForm(forms.ModelForm):
 	return friday_number_of_tables
 
     def clean_saturday_number_of_tables(self):
-	saturday_number_of_tables = self.cleaned_data['friday_number_of_tables']
+	saturday_number_of_tables = self.cleaned_data['saturday_number_of_tables']
 	try:
             if saturday_number_of_tables < 0:
 	        raise forms.ValidationError("Please put in a number of tables greater than or equal to 0")
+	    try:
+	    	days_attending = self.cleaned_data['days_attending']
+	    	if (not 'Saturday' in days_attending) and saturday_number_of_tables > 0:
+		    raise forms.ValidationError("You can't have a table on a day you aren't attending!")
+		elif 'Saturday' in days_attending and saturday_number_of_tables <= 0:
+		    raise forms.ValidationError("You need to have at least one table on a day you are attending!")
+	    except KeyError:
+		pass
  	except AttributeError:
 	    pass
 	
@@ -415,9 +453,9 @@ FILTER_FUNCS = {
         lambda val, field: set(val) != set(split_choices(field)),
 }
 
-MULTIPLE = ("GradeLevelWanted", "MajorsWanted", "DaysAttending")
-CHOICES = ("HasSubmittedPayment")
-DATES = ()
+MULTIPLE = ("grade_level_wanted", "majors_wanted", "days_attending",  "sponsorshipitem")
+CHOICES = ("has_submitted_payment", "is_non_profit", "sponsor")
+DATES = ('creation_date')
 
 class EntriesForm(forms.Form):
     """
@@ -454,11 +492,11 @@ class EntriesForm(forms.Form):
             elif field.strip("_") in MULTIPLE:
                 # A fixed set of choices to filter by, with multiple
                 # possible values in the entry field.
-                if field.strip("_") == "MajorsWanted":
+                if field.strip("_") == "majors_wanted":
                     c = MAJOR_CHOICES
-                elif field.strip("_") == "DaysAttending":
+                elif field.strip("_") == "days_attending":
                     c = DAY_CHOICES
-                elif field.strip("_") == "GradeLevelWanted":
+                elif field.strip("_") == "grade_;evel_wanted":
                     c = GRADE_LEVEL_CHOICES
                 else:
                     c = GRADE_LEVEL_CHOICES
@@ -587,19 +625,19 @@ class EntriesForm(forms.Form):
                     #print field_indexes
                     #print field.name.strip('_')
 		    from django.db.models.fields.related import ManyToManyField
-                    if isinstance(field_value, list):
-			print "wtf", field_value
+		    if isinstance(field_value, list):
                         field_value = ", ".join(field_value)
 		    elif isinstance(field, ManyToManyField):
-			print "do it"	
-			field_value = ", ".join([rep.rep for rep in field_value.all()])
-			print field_value
+			field_value = ", ".join([item.__unicode__() for item in field_value.all()])
+		    elif str(field) ==  'theme.CompanyProfile.company_bio':
+			field_value = "..."
 		    current_row[field_indexes[field.name.strip('_')]] = str(field_value)
                 except KeyError:
-                    #print "something bad happened"
+                    #print esomething bad happened"
                     pass
         # Output the final row.
         if valid_row and current_row is not None:
             if not csv:
                 current_row.insert(0, current_entry)
+	
             yield current_row

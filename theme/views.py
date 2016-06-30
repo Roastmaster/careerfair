@@ -22,31 +22,133 @@ from django.core.mail import EmailMessage
 from paypal.standard.forms import PayPalPaymentsForm
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
+from email.MIMEImage import MIMEImage
 
 NGROK =  "rpicareerfair.org"
+
+FRIDAY_BASE_FEE = ("FRIDAY BASE FEE ($560.00)\n"
+		   "-------------------------------\n"
+		   "Registration fee ($235.00)\n"
+		   "One table ($125.00)\n"
+		   "Two representatives ($200.00)\n"
+		   "Representative Breakfast (Included)\n"
+		   "Representative Lunch (Included)\n")
+
+SATURDAY_BASE_FEE = ( "SATURDAY BASE FEE ($560.00)\n"
+		      "-------------------------------------\n"
+		      "Registration fee ($235.00)\n"
+		      "One table ($125.00)\n"
+		      "Two representatives ($200.00)\n"
+		      "Representative Breakfast	(Included)\n"
+		      "Representative Lunch (Included)\n")
+
+def generate_invoice(page_type, company):
+    paypal_info = PayPalInfo.objects.all()[0]
+    s = ("\n\n\n\nHere is your invoice."
+	"You may either pay it by check delivered to NSBE/SHPE career fair Javier Otero at 1999 burdett ave, troy, ny, 12180, or by going to rpicareerfair.org/dashboard/prepaymentscreen"
+	"\n"
+	"\n"
+	)
+    if "Friday" in company.days_attending:
+	s+= FRIDAY_BASE_FEE
+	num_tables = company.friday_number_of_tables
+	num_reps = len(company.friday_representatives.all())
+	if num_tables > 1:
+	    s+= "Additional tables x"+str(num_tables-1)+" ($"+str((num_tables-1)*paypal_info.price_per_table)+")\n"
+	if num_reps > 2:
+	    s+= "Additional representatives x"+str(num_reps-2)+" ($"+str((num_reps-1)*paypal_info.price_per_rep)+")\n\n"
+    if "Saturday" in company.days_attending:
+	s+= SATURDAY_BASE_FEE
+	num_tables = company.saturday_number_of_tables
+	num_reps = len(company.saturday_representatives.all())
+	if num_tables > 1:
+	    s+= "Additional tables x"+str(num_tables-1)+" ($"+str((num_tables-1)*paypal_info.price_per_table)+')\n'
+	if num_reps > 2:
+	    s+= "Additional representatives x"+str(num_reps-2)+" ($"+str((num_reps-1)*paypal_info.price_per_rep)+')\n\n'
+    if company.sponsor:
+	sponsorship = SponsorshipPackage.objects.get(title=company.sponsor)
+	s+= "Sponsorship: "+company.sponsor+" ($"+str(sponsorship.price)+')\n'
+	if sponsorship.num_free_tables:
+	    s+= "Free table (-$"+str(sponsorship.num_free_tables*paypal_info.price_per_table)+")\n"
+	if sponsorship.num_free_reps:
+	    s+= "Free reps (-$"+str(sponsorship.num_free_reps*paypal_info.price_per_rep)+")\n"
+    if company.sponsorshipitem:
+	for item in company.sponsorshipitem.all():
+	    s+= (item.name +" ($"+str(item.price))+')\n'
+    s += "\nTotal: $"+str(company.total_bill)+"\n"
+    return s
 
 # A view hooked up to the page
 def send_custom_email(page_type, user):
     if page_type.send_email:
         subject = page_type.email_subject
         message = page_type.email_message
-	try:
-	    attachment = open(page_type.attachment.url[1:],'r')
-        except:
-	    attachment = None
 	if page_type.email_copies:
             email_to = page_type.email_copies.split(",")
             email_to += [user.email]
         else:
             email_to = [user.email]
-        email = EmailMessage(subject, message, 'Career Fair Staff',email_to)
+	d = Context({"email_message":message})
+	send_invoice(page_type, user)
+	plaintext = get_template('pages/custom_reg_email.txt')
+	htmly = get_template('pages/custom_reg_email.html')
+	text_content = plaintext.render(d)
+	html_content = htmly.render(d)
+	email = EmailMultiAlternatives(subject, text_content, 'Career Fair Staff', email_to)
+	email.attach_alternative(html_content, "text/html")
+	try:
+	    attachment = open(page_type.attachment.url[1:],'r')
+        except:
+	    attachment = None
 	if attachment:
 		email.attach("nsbe_shpe_cf16.pdf", attachment.read(), 'application/pdf') 
 	email.send(fail_silently=False)
 
+def send_invoice(page_type, user):
+    if page_type.send_email:
+	subject= page_type.email_subject
+	try:
+	    attachment = open(page_type.attachment.url[1:],'r')
+	except:
+	    attachment=None
+	email_to= [user.email]
+	plaintext = get_template('pages/custom_email.txt')
+	htmly = get_template('pages/custom_email.html')
+	try:
+	    sponsorship = SponsorshipPackage.objects.get(title=user.companyprofile.sponsor)
+	except:
+	    sponsorship = None
+	d = Context({'sponsorship':sponsorship, 'paypal_info': PayPalInfo.objects.all()[0], 'company':user.companyprofile})
+	text_content = plaintext.render(d)
+	html_content = htmly.render(d)
+	email = EmailMultiAlternatives(subject, text_content, 'Career Fair Staff', email_to)
+	email.attach_alternative(html_content, "text/html")
+	email.mixed_subtype = 'related'
+	f = "/opt/myenv/careerfair/static/media/uploads/static images/header.png"
+	fp = open(f, 'rb')
+	msg_img = MIMEImage(fp.read())
+	fp.close()
+	msg_img.add_header('Content-ID', '<header.png>'.format(f))
+	msg_img.add_header("Content-Disposition", "inline", filename="header.png")
+	email.attach(msg_img)
+	email.send()
+
+def update_rep_data(company):
+    company.friday_representatives.clear()
+    company.saturday_representatives.clear()
+    for rep in company.reps.all():
+	if "Friday" in rep.days_attending:
+	    company.friday_representatives.add(rep)
+        if "Saturday" in rep.days_attending:
+	    company.saturday_representatives.add(rep)
+    company.save()
+
 # Calculates a company's registration price based off the
 # PayPalInfo object the administrative user provided and
-# the company's signup info.
+	# the company's signup info.
 def get_bill(company):
     # Retrie ve the admin spcified prices
     paypal_info = PayPalInfo.objects.all()[0]
@@ -54,49 +156,33 @@ def get_bill(company):
 
     # Calculate the base price based off the days attending
     if "Friday" in company.days_attending and "Saturday" in company.days_attending:
-        print "what"
-	print company.days_attending
 	total_bill += paypal_info.weekend_price
     elif "Friday" in company.days_attending:
 	total_bill += paypal_info.friday_price
     elif "Saturday" in company.days_attending:
         total_bill += paypal_info.saturday_price
 
-    print total_bill
 
     # Add additional rep fee for each rep beyond the first two
     sponsorship = company.sponsor
+    count = 2 * len(company.days_attending)
+    num_reps_attending = len(company.friday_representatives.all())+len(company.saturday_representatives.all())
+    total_bill += ((num_reps_attending - count) * paypal_info.price_per_rep) if num_reps_attending > count else 0
+
+    count = 0 - len(company.days_attending)
+    num_tables = company.friday_number_of_tables + company.saturday_number_of_tables
+    total_bill += (num_tables+count) * paypal_info.price_per_table if num_tables > count else  0
+   
     if sponsorship:
 	sponsorship = SponsorshipPackage.objects.get(title=company.sponsor)
-    	count = 1 - sponsorship.num_free_reps
-    else:
-	count = 1
-    for rep in company.reps.all():
-        if count > 2:
-            total_bill += paypal_info.price_per_rep
-	
-        count += len(rep.days_attending) or 1
-
-    print total_bill
+    	total_bill -= paypal_info.price_per_rep*sponsorship.num_free_reps
+	total_bill -= paypal_info.price_per_table*sponsorship.num_free_tables
+	total_bill += sponsorship.price
+	total_bill -= sponsorship.discount
 
     for item in company.sponsorshipitem.all():
 	total_bill += item.price
 
-    print total_bill
-    # Add additional fees for tables beyond the first
-    if sponsorship:
-	total_bill += paypal_info.price_per_table*(company.number_of_tables-1-sponsorship.num_free_tables)
-    else:
-	total_bill += paypal_info.price_per_table*(company.number_of_tables-1)
-
-    print total_bill
-
-    # If they are a sponsor, add the fee of their specific sponsorship package as well
-    if sponsorship:
-        total_bill += sponsorship.price
-        total_bill -= sponsorship.discount
-
-    print total_bill
     if company.is_non_profit:
 	total_bill *= 0.85
     return paypal_info.email, paypal_info.item_name, total_bill
@@ -177,12 +263,10 @@ def company_register(request):
                 profile.reps.add(rep)
             for rep in CompanyRep.objects.filter(user=user, is_alumni=True):
                 profile.reps_alumni.add(rep)
-            
+           
+	    update_rep_data(profile) 
             profile.number_of_representatives = len(new_reps)
 	    profile.number_of_tables = profile.friday_number_of_tables + profile.saturday_number_of_tables
-	    if profile.sponsor:
-		sponsor = SponsorshipPackage.objects.get(title=profile.sponsor)
-	   	profile.number_of_tables += sponsor.num_free_tables
             email, item, bill = get_bill(profile)
             profile.total_bill = bill 
             new_user = profile.save()
@@ -269,7 +353,7 @@ def student_register(request):
                                     password=user_form.cleaned_data['password'])
 
             page_type = RegistrationPage.objects.get(title="Student Registration").registrationpage
-            send_custom_email(page_type, user)
+            #send_custom_email(page_type, user)
 
             login(request, new_user)
 
@@ -421,8 +505,7 @@ def edit_profile(request):
                 if 'logo' in request.FILES:
                     profile.logo = request.FILES['logo']
                 profile.save()
-		if profile.sponsor:
-		    profile.number_of_tables = profile.friday_number_of_tables + profile.saturday_number_of_tables +  SponsorshipPackage.objects.get(title=profile.sponsor).num_free_tables
+		profile.number_of_tables = profile.friday_number_of_tables + profile.saturday_number_of_tables
 
                 # Representative parsing and saving
                 new_reps = []
@@ -440,6 +523,7 @@ def edit_profile(request):
                     profile.reps.add(rep)
                 for rep in CompanyRep.objects.filter(user=user, is_alumni=True):
                     profile.reps_alumni.add(rep)
+		update_rep_data(profile)
 		profile.sponsorshipitem.clear()
 		if 'sponsorshipitem' in request.POST:
 		    for item in request.POST.getlist('sponsorshipitem'):
