@@ -23,6 +23,12 @@ from customutils import ContentTypeRestrictedFileField
 #
 # REGISTRATION FORMS:
 
+
+# VOLUNTEER_CHOICES, DAY_CHOICES, MAJOR_CHOICES, MINOR_CHOICES, and GRADE_LEVEL_CHOICES
+#  are all multiple choice fields
+# for company and student registration.  Each is a tuple because it needs both
+# a database representation (the left value) and the value that gets rendered 
+#(the righ value), and I make it so that the value and the database entry are the same.
 VOLUNTEER_CHOICES = (('Armory', 'Armory'),
                     ('Food', 'Food'),
                     ('Something else', 'Something else'))
@@ -140,6 +146,17 @@ GRADE_LEVEL_CHOICES = (('Freshman', 'Freshman'),
                        ('PhD', 'PhD'))
 
 MAJOR_CHOICES_FLAT = [major[0] for major in MAJOR_CHOICES]
+
+#There are two model categories:  -Pages and their corresponding "sub models"
+#				 -Profiles and other user data
+
+# Page models would have stuff such as "header" and "blurb" and what not so
+# that users using the content management system (mezzanine) would be able
+# to edit that field.
+
+# The SponsorUsPage, for example has a page_header field, a page blurb, etc
+# and it also has SponsorshipPackages and SponsorshipItem that are rendered to 
+# that page and can also be accessed and set in the CMS.
 
 #
 #
