@@ -207,7 +207,10 @@ def company_register(request):
     if request.method == 'POST':
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
-        user_form = UserForm(request.POST, request.FILES)
+	temp_email = request.POST['username']
+        if len(request.POST['username']) > 30:
+	    request.POST['username'] = request.POST['username'][:30]
+	user_form = UserForm(request.POST, request.FILES)
         profile_form = CompanyProfileForm(request.POST, request.FILES)
         rep_formset = RepFormSet(request.POST)
 
@@ -215,7 +218,7 @@ def company_register(request):
         if user_form.is_valid() and profile_form.is_valid() and rep_formset.is_valid():
             # Save the user's form data to the database.
             user = user_form.save()
-            user.email=user.username
+            user.email=temp_email
 
             # Now we hash the password with the set_password method.
             # Once hashed, we can update the user object.
@@ -383,7 +386,8 @@ def user_login(request):
         # This information is obtained from the login form.
         username = request.POST['username']
         password = request.POST['password']
-
+	if len(username) > 30:
+	    username = username[:30]
         # Use Django's machinery to attempt to see if the username/password
         # combination is valid - a User object is returned if it is.
         user = authenticate(username=username, password=password)
