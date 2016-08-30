@@ -48,8 +48,15 @@
                                     {{page.aboutpage.BottomRow|richtext_filters|safe }}
                                     {% endeditable %}</p>
 
-                        <div class="row">
-                        {% for member in page.aboutpage.staff_profile.all %}
+                        
+                        {% for committee in page.aboutpage.committee.all %}
+			<div class="row">   
+			    <div class="span4">
+			        <h3 class="title"><span>{{committee.committee_name}}</span></h2>
+			    </div>
+			</div>
+			<div class="row">
+			    {% for member in committee.committee_members.all %}
                             {%if forloop.counter0|divisibleby:4 %}
                         	</div>
                             <div class="row">
@@ -64,7 +71,8 @@
                                         <p>{{member.bio|richtext_filters|safe}}</p>
                                         {% endeditable %}
                                     </div>
-                                </div> 
+                                </div>
+				{% endfor %} 
                         {% endfor %}
                     </section>
                 </div>
