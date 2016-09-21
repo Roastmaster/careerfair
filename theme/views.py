@@ -27,59 +27,22 @@ from django.template.loader import get_template
 from django.template import Context
 from email.MIMEImage import MIMEImage
 
-NGROK =  "rpicareerfair.org"
+NGROK =  "http://rpicareerfair.org"
 
-FRIDAY_BASE_FEE = ("FRIDAY BASE FEE ($560.00)\n"
-		   "-------------------------------\n"
-		   "Registration fee ($235.00)\n"
-		   "One table ($125.00)\n"
-		   "Two representatives ($200.00)\n"
-		   "Representative Breakfast (Included)\n"
-		   "Representative Lunch (Included)\n")
+from django.contrib.auth.decorators import user_passes_test
+def has_submitted_payment(user):
+    try:
+        company = user.companyprofile
+    except:
+        return False or user.is_staff
+    return company.has_submitted_payment or user.is_staff
 
-SATURDAY_BASE_FEE = ( "SATURDAY BASE FEE ($560.00)\n"
-		      "-------------------------------------\n"
-		      "Registration fee ($235.00)\n"
-		      "One table ($125.00)\n"
-		      "Two representatives ($200.00)\n"
-		      "Representative Breakfast	(Included)\n"
-		      "Representative Lunch (Included)\n")
-
-def generate_invoice(page_type, company):
-    paypal_info = PayPalInfo.objects.all()[0]
-    s = ("\n\n\n\nHere is your invoice."
-	"You may either pay it by check delivered to NSBE/SHPE career fair Javier Otero at 1999 burdett ave, troy, ny, 12180, or by going to rpicareerfair.org/dashboard/prepaymentscreen"
-	"\n"
-	"\n"
-	)
-    if "Friday" in company.days_attending:
-	s+= FRIDAY_BASE_FEE
-	num_tables = company.friday_number_of_tables
-	num_reps = len(company.friday_representatives.all())
-	if num_tables > 1:
-	    s+= "Additional tables x"+str(num_tables-1)+" ($"+str((num_tables-1)*paypal_info.price_per_table)+")\n"
-	if num_reps > 2:
-	    s+= "Additional representatives x"+str(num_reps-2)+" ($"+str((num_reps-1)*paypal_info.price_per_rep)+")\n\n"
-    if "Saturday" in company.days_attending:
-	s+= SATURDAY_BASE_FEE
-	num_tables = company.saturday_number_of_tables
-	num_reps = len(company.saturday_representatives.all())
-	if num_tables > 1:
-	    s+= "Additional tables x"+str(num_tables-1)+" ($"+str((num_tables-1)*paypal_info.price_per_table)+')\n'
-	if num_reps > 2:
-	    s+= "Additional representatives x"+str(num_reps-2)+" ($"+str((num_reps-1)*paypal_info.price_per_rep)+')\n\n'
-    if company.sponsor:
-	sponsorship = SponsorshipPackage.objects.get(title=company.sponsor)
-	s+= "Sponsorship: "+company.sponsor+" ($"+str(sponsorship.price)+')\n'
-	if sponsorship.num_free_tables:
-	    s+= "Free table (-$"+str(sponsorship.num_free_tables*paypal_info.price_per_table)+")\n"
-	if sponsorship.num_free_reps:
-	    s+= "Free reps (-$"+str(sponsorship.num_free_reps*paypal_info.price_per_rep)+")\n"
-    if company.sponsorshipitem:
-	for item in company.sponsorshipitem.all():
-	    s+= (item.name +" ($"+str(item.price))+')\n'
-    s += "\nTotal: $"+str(company.total_bill)+"\n"
-    return s
+def has_not_submitted_payment(user):
+    try:
+	company = user.companyprofile
+    except:
+	return True
+    return not company.has_submitted_payment
 
 # A view hooked up to the page
 def send_custom_email(page_type, user):
@@ -114,9 +77,9 @@ def send_invoice(page_type, user):
 	    attachment = open(page_type.attachment.url[1:],'r')
 	except:
 	    attachment=None
-	email_to= [user.email]
-	plaintext = get_template('pages/custom_email.txt')
-	htmly = get_template('pages/custom_email.html')
+	email_to = [user.email]
+	plaintext = get_template("/opt/myenv/careerfair"+page_type.invoice_template_text.url)
+	htmly = get_template("/opt/myenv/careerfair"+page_type.invoice_template_html.url)
 	try:
 	    sponsorship = SponsorshipPackage.objects.get(title=user.companyprofile.sponsor)
 	except:
@@ -127,13 +90,6 @@ def send_invoice(page_type, user):
 	email = EmailMultiAlternatives(subject, text_content, 'Career Fair Staff', email_to)
 	email.attach_alternative(html_content, "text/html")
 	email.mixed_subtype = 'related'
-	f = "/opt/myenv/careerfair/static/media/uploads/static images/header.png"
-	fp = open(f, 'rb')
-	msg_img = MIMEImage(fp.read())
-	fp.close()
-	msg_img.add_header('Content-ID', '<header.png>'.format(f))
-	msg_img.add_header("Content-Disposition", "inline", filename="header.png")
-	email.attach(msg_img)
 	email.send()
 
 def update_rep_data(company):
@@ -153,7 +109,8 @@ def get_bill(company):
     # Retrie ve the admin spcified prices
     paypal_info = PayPalInfo.objects.all()[0]
     total_bill = 0
-
+    if company.user.is_staff:
+	return paypal_info.email, paypal_info.item_name, 1
     # Calculate the base price based off the days attending
     if "Friday" in company.days_attending and "Saturday" in company.days_attending:
 	total_bill += paypal_info.weekend_price
@@ -205,6 +162,9 @@ def company_register(request):
 
     # If it's a HTTP POST, we're interested in processing form data.
     if request.method == 'POST':
+	# TODO:
+	return HttpResponse("Registration has closed!")
+	
         # Attempt to grab information from the raw form information.
         # Note that we make use of both UserForm and UserProfileForm.
 	temp_email = request.POST['username']
@@ -321,26 +281,18 @@ def student_register(request):
     registered = False
 
     if request.method == 'POST':
-
         user_form = UserForm(request.POST)
         profile_form = StudentProfileForm(request.POST, request.FILES)
-
-
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save()
-
-            #set the email to the username
+            # set the email to the username
             user.email=user.username
-
             user.set_password(user.password)
             user.save()
-
             profile = profile_form.save(commit=False)
             profile.user = user
-
             profile.first_name = user.first_name
             profile.last_name = user.last_name
-
             if 'resume' in request.FILES:
                 profile.resume = request.FILES['resume']
 
@@ -351,7 +303,6 @@ def student_register(request):
 
             registered = True
             new_user = profile.save()
-
             new_user = authenticate(username=user_form.cleaned_data['username'],
                                     password=user_form.cleaned_data['password'])
 
@@ -409,7 +360,7 @@ def user_login(request):
             # Bad login details were provided. So we can't log the user in.
             print "Invalid login details: {0}, {1}".format(username, password)
             # lazy: make it return nothing so django throws an error so 
-            return 
+            return  
 
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
@@ -440,6 +391,7 @@ def payment_page(request):
     return render_to_response('pages/payment_page.html' , {} , RequestContext(request))
 
 @login_required
+@user_passes_test(has_not_submitted_payment, login_url="/dashboard/")
 def edit_profile(request):
     user = request.user
     RepFormSet = formset_factory(RepForm, formset=BaseRepFormSet)
@@ -453,7 +405,6 @@ def edit_profile(request):
 
     if is_company: 
         form = EditCompanyProfileForm(request.POST or None, initial={'company':user.companyprofile.company, 
-                                                                'public_phone':user.companyprofile.phone_number,
                                                                 'company_website':user.companyprofile.company_website,
                                                                 'logo':user.companyprofile.logo,
                                                                 'days_attending':user.companyprofile.days_attending,
@@ -578,43 +529,48 @@ def company_search(request):
     company_search_form = CompanySearchForm()
 
     # If the request is a HTTP POST, try to pull out the relevant information.
-    if request.method == 'POST':
-
-        company_string = request.POST['company']
-        days_search = ""
-        grades_search = ""
-        majors_search = ""
-
+    if request.method == 'GET' and 'company-search-posted' in request.session and not request.GET.get('page', None):
+        request.session.pop('company-search-posted')
+    if not request.method == 'POST' and 'company-search-posted' in request.session:
+	request.method = 'POST'
+    elif request.method == 'POST':
+	if "company" in request.POST:
+	    request.session['company_search'] = request.POST.getlist('company')[0]
+	else:
+	    request.session['company_search'] = ""
         if "days_attending" in request.POST:
-            days_search = request.POST.getlist('days_attending')
+	    request.session['days_search'] = request.POST.getlist('days_attending') 
+        else:
+	    request.session['days_search'] = ""
         if "grade_level_wanted" in request.POST:
-            grades_search = request.POST.getlist('grade_level_wanted')
+	    request.session['grades_search'] = request.POST.getlist('grade_level_wanted')
+	else:
+	    request.session['grades_search'] = ""
         if "majors_wanted" in request.POST:
-            majors_search = request.POST.getlist('majors_wanted')
+	    request.session['majors_search'] = request.POST.getlist('majors_wanted')
+	else:
+	    request.session['majors_search'] = ""
 
-        query_results = CompanyProfile.objects.filter(
-           Q (company__contains = company_string ) &
-           Q (has_submitted_payment = True)
-           ).order_by('company')
+	request.session['company-search-posted'] = True
 
         # the reduce function is basically saying:
         # Query results is: The list of every company that contains
         # days_search[0], union with every company that contains 
         # days_search[1]... basically a bunch of unions.
-        if days_search:
+    if request.method == 'POST':
+	if 'company_search' in request.session and request.session['company_search']:
             query_results = query_results.filter(
-                reduce(lambda x, y: x | y, [Q(days_attending__contains=day) for day in days_search]))
+                Q (company__icontains = request.session['company_search'] ) &
+                Q (has_submitted_payment = True)
+                ).order_by('company')
+        if 'days_search' in request.session and request.session['days_search']:
+	    query_results = query_results.filter(reduce(lambda x, y: x | y, [Q(days_attending__contains=day) for day in request.session['days_search']]))
+        if 'grades_search' in request.session and request.session['grades_search']:
+	    query_results = query_results.filter(reduce(lambda x, y: x | y, [Q(grade_level_wanted__contains=grade) for grade in request.session['grades_search']]))
+        if 'majors_search' in request.session and request.session['majors_search']:
+	    query_results = query_results.filter(reduce(lambda x, y: x | y, [Q(majors_wanted__contains=maj) for maj in request.session['majors_search']]))	    
 
-        if grades_search:
-            query_results = query_results.filter(
-                reduce(lambda x, y: x | y, [Q(grade_level_wanted__contains=grade) for grade in grades_search]))
-    
-        if majors_search:
-            query_results = query_results.filter(
-                reduce(lambda x, y: x | y, [Q(majors_wanted__contains=maj) for maj in majors_search]))
-
-
-    # Show 25 contacts per page
+    # Show 25 companies per page
     paginator = Paginator(query_results, 25) 
     page = request.GET.get('page')
     try:
@@ -629,62 +585,58 @@ def company_search(request):
         {'query_results': query_results, 'company_search_form': company_search_form},
         context)
 
-from django.contrib.auth.decorators import user_passes_test
-def has_submitted_payment(user):
-    try:
-        company = user.companyprofile
-    except:
-        return False
-    return company.has_submitted_payment
-
 @user_passes_test(has_submitted_payment, login_url='/dashboard/prepaymentscreen/')
 def student_search(request):
     context = RequestContext(request)
     query_results = StudentProfile.objects.all()
     student_search_form = StudentSearchForm()
-
-    if request.method == 'POST':
-
-        majors_search = ""
-        grades_search = ""
-        gpa_search = 0
-        open_to_relocation_search = False
-
-        student_string = request.POST['full_name']
-
+    if request.method == 'GET' and 'student-search-posted' in request.session and not request.GET.get('page', None):
+        request.session.pop('student-search-posted')
+    if not request.method == 'POST' and 'student-search-posted' in request.session:
+        request.method = 'POST'
+    elif request.method == 'POST':
+	request.session['student-search-posted'] = True
+        if 'name' in request.POST and request.POST['name']:
+	    request.session['name'] = request.POST['name']
+	else:
+	    request.session['name'] = ""
         if 'major_wanted' in request.POST and request.POST['major_wanted']:
-            majors_search = request.POST.getlist('major_wanted')
-
+            request.session['majors_search'] = request.POST.getlist('major_wanted')
+	else:
+	    request.session['majors_search'] = ""
         if 'grade_level_wanted' in request.POST and request.POST['grade_level_wanted']:
-            grades_search = request.POST.getlist('grade_level_wanted')
-
+            request.session['grade_level_wanted'] = request.POST.getlist('grade_level_wanted')
+	else:
+	    request.session['grade_level_wanted'] = ""
         if request.POST['minimum_GPA']:
-             gpa_search = request.POST['minimum_GPA']
-
+            request.session['minimum_GPA'] = request.POST['minimum_GPA']
+        else:
+	    request.session['minimum_GPA'] = 0
         if "open_to_relocation" in request.POST:
-            open_to_relocation_search = True
-
-        print open_to_relocation_search
-
+	    request.session['open_to_relocation'] = True
+	else:
+	    request.session['open_to_relocation'] = None
+        
+    if request.method == 'POST':
         query_results = StudentProfile.objects.filter(
-            Q(first_name__contains = student_string) |
-            Q(last_name__contains = student_string))
+            Q(first_name__icontains = request.session['name']) |
+            Q(last_name__icontains = request.session['name']))
 
-        if majors_search:
+        if 'majors_search' in request.session and request.session['majors_search']:
             query_results = query_results.filter(
-                reduce(lambda x, y: x | y, [Q(major__contains=maj) for maj in majors_search]))
+                reduce(lambda x, y: x | y, [Q(major__contains=maj) for maj in request.session['majors_search']]))
 
-        if grades_search:
+        if 'grade_level_wanted' in request.session and request.session['grade_level_wanted']:
             query_results = query_results.filter(
-                reduce(lambda x, y: x | y, [Q(grade_level__contains=level) for level in grades_search]))
+                reduce(lambda x, y: x | y, [Q(grade_level__contains=level) for level in request.session['grade_level_wanted']]))
 
-        if gpa_search:
-            query_results = query_results.filter(Q(GPA__gte = gpa_search))
+        if 'minimum_GPA' in request.session and request.session['minimum_GPA']:
+            query_results = query_results.filter(Q(GPA__gte = request.session['minimum_GPA']))
 
-        if open_to_relocation_search:
+        if 'open_to_relocation' in request.session and request.session['open_to_relocation']:
             query_results = query_results.filter(open_to_relocation=True)
 
-    paginator = Paginator(query_results, 25) # Show 25 contacts per page
+    paginator = Paginator(query_results, 50) # Show 50 students per page
     page = request.GET.get('page')
     try:
         query_results = paginator.page(page)
@@ -903,7 +855,7 @@ def view_that_asks_for_money(request):
         "invoice": "invoice_0_"+request.user.companyprofile.company,
         "notify_url": NGROK+"/paypal-ipn/",
         "return_url": NGROK+"/return_paypal/",
-        "cancel_return": NGROK+"/dashboard/prepaymentscreen",
+        "cancel_return": NGROK+"/dashboard/prepaymentscreen/",
         "custom": request.user.id,  # Custom command to correlate to some function later (optional)
     }
     # Create the instance.

@@ -90,6 +90,7 @@
         <!--planning-->
         <div class="wrap planning">
             <div class="container">
+		{% if not user.is_authenticated %}
                 <div class="row">
                     <div class="span3">
                         <a href={{page.homepage.IconUrl1}}>
@@ -145,6 +146,7 @@
                         </a>
                     </div>                              
                 </div>
+		{% endif %}
             </div>
         </div>
         <!--//planning-->

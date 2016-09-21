@@ -55,7 +55,7 @@ $(document).ready(function () {
                             <ul class="nav nav-tabs">
                                 <li><a href="/dashboard">Dashboard</a></li>
                                 <li><a href="/dashboard/edit_profile">Edit Profile</a></li>
-                                <li><a href="/volunteer">Volunteer</a></li>
+                                <!-- <li><a href="/volunteer">Volunteer</a></li> -->
                                 <li class="active"><a href="/company-search">Company Search</a></li>
                             </ul>    
                         </div>
@@ -100,13 +100,13 @@ $(document).ready(function () {
     							<tr class="comp_line" onclick="location.href='/company-slug/{{comp.id}}.html'">
     								<td><a style="display:block;" href='/company-slug/{{comp.id}}.html'>{{ comp.company }}</a></td>
     								<td>{% for day in comp.days_attending %} 
-    									{{day}} 
+    									{{day}}{% if not forloop.last %}, {% endif %}
     									{% endfor %}</td>
     								<td>{% for maj in comp.majors_wanted %}
-    									{{maj}},  
+    									{{maj}}{% if not forloop.last %}, {% endif %}  
     									{% endfor %}</td>
     								<td>{% for grade in comp.grade_level_wanted %}
-    									{{grade}}   
+    									{{grade}}{% if not forloop.last%}, {% endif %}   
     									{% endfor %}</td>
     							</tr>
     							{% endfor %}

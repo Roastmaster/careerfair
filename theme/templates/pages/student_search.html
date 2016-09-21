@@ -101,7 +101,7 @@ $(document).ready(function () {
                                     <td> 
                                     {% for grade in student.grade_level %}{{grade}}{% endfor %}
                                     </td>
-                                    <td>{% for maj in student.major %}{{maj}}{% endfor %} </td>
+                                    <td>{% for maj in student.major %}{{maj}}{% if not forloop.last %}, {% endif %}{% endfor %} </td>
                                     <td>{% for min in student.minor%}{{min}}{% endfor %}</td>
                                     <td>{{ student.GPA }}</td>
                                 </tr>

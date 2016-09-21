@@ -242,47 +242,69 @@ class CompanyRep(models.Model):
    days_attending = MultiSelectField(choices=DAY_CHOICES)
    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
    company = models.CharField(max_length=60, blank=True, null=True)
+   is_present = models.BooleanField(default=False)
 
    def __unicode__(self):
        return self.rep
 
 
 class CompanyProfile(models.Model):
+    company = models.CharField(_("Company name"),
+        max_length=60)
     user = models.OneToOneField(User)
-    phone_number = models.CharField(max_length=15, blank=True)
-    public_email = models.EmailField(max_length=120, blank=True)
-    company = models.CharField(max_length=60)
-    company_website = models.CharField(max_length=1000, blank=True)
-    logo = models.ImageField(upload_to='uploads/company_images', blank=True)
-    days_attending = MultiSelectField(choices=DAY_CHOICES)
-    majors_wanted = MultiSelectField(choices=MAJOR_CHOICES)
-    grade_level_wanted = MultiSelectField(choices=GRADE_LEVEL_CHOICES)
-    company_bio = models.TextField(max_length=1000, blank=True)
-    has_submitted_payment = models.BooleanField(default=False)
-    how_are_you_feeling_today = models.CharField(max_length=1000, blank=True)
-    friday_tables = models.TextField(default='[]')
-    friday_number_of_tables = models.IntegerField(default=0)
-    saturday_tables = models.TextField(default='[]')
-    saturday_number_of_tables = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
-    reps = models.ManyToManyField(CompanyRep, related_name="reps")
-    reps_alumni = models.ManyToManyField(CompanyRep, related_name="alumni", blank=True)
-    number_of_representatives = models.IntegerField(default=1)
-    saturday_representatives = models.ManyToManyField(CompanyRep, blank=True, related_name="sat_reps")
-    friday_representatives = models.ManyToManyField(CompanyRep, blank=True, related_name="fri_reps")
-    number_of_tables = models.IntegerField(default=0)
-    sponsor = models.CharField(max_length=100, blank=True)
-    total_bill = models.IntegerField(null=True, default=500)
+    phone_number = models.CharField(_("Phone number"),
+     max_length=16, blank=True)
+    company_website = models.CharField(_("Company website"),
+        max_length=1000, blank=True)
+    logo = models.ImageField(_("Company logo"),
+        upload_to='uploads/company_images', blank=True)
+    days_attending = MultiSelectField(_("Days attending"),
+        choices=DAY_CHOICES)
+    majors_wanted = MultiSelectField(_("Majors wanted"),
+        choices=MAJOR_CHOICES)
+    grade_level_wanted = MultiSelectField(_("Grade level wanted"),
+        choices=GRADE_LEVEL_CHOICES)
+    company_bio = models.TextField(_("Company bio"),
+        max_length=1000, blank=True)
+    has_submitted_payment = models.BooleanField(_("Has submitted payment"),
+        default=False)
+    friday_tables = models.TextField(_("Friday table locations"),
+        default='[]')
+    friday_number_of_tables = models.IntegerField(_("Friday # of tables"),
+        default=0)
+    saturday_tables = models.TextField(_("Saturday table locations"),
+        default='[]')
+    saturday_number_of_tables = models.IntegerField(_("Saturday # of tables"),
+        default=0)
+    creation_date = models.DateTimeField(_("Creation time"),
+        auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(_("Last updated"),
+        auto_now=True, null=True)
+    reps = models.ManyToManyField(
+        CompanyRep, _("Representatives+"))
+    reps_alumni = models.ManyToManyField(
+        CompanyRep, _("Alumni reps+"),blank=True)
+    number_of_representatives = models.IntegerField(_("Number of representatives"),
+        default=1)
+    friday_representatives = models.ManyToManyField(CompanyRep, _("Fridays reps+"),
+        blank=True)
+    saturday_representatives = models.ManyToManyField(CompanyRep, _("Saturday reps+"),
+        blank=True)
+    number_of_tables = models.IntegerField(_("Number of tables"),
+        default=0)
+    total_bill = models.IntegerField(_("Total bill"),null=True,
+        default=500)
     interview_rooms_friday = models.IntegerField(null=True, default=0)
     interview_friday_from = models.CharField(null=True, blank=True, max_length=15)
     interview_friday_to = models.CharField(null=True, blank=True, max_length=15)
     interview_rooms_saturday = models.IntegerField(null=True, default=0)
     interview_saturday_from = models.CharField(null=True, blank=True, max_length=15)
     interview_saturday_to = models.CharField(null=True, blank=True,max_length=15)
-    tables = models.TextField(default='[]', null=True, blank=True)
-    is_non_profit = models.BooleanField(default=False)
-    sponsorshipitem = models.ManyToManyField(SponsorshipItem, related_name="sponsorshipitem", blank=True)  
+    tables = models.TextField(_("Staff assigned tables"),default='[]', null=True, blank=True)
+    is_non_profit = models.BooleanField(_("Is non-profit"),default=False)
+    sponsor = models.CharField(_("Sponsorship choice"),max_length=100,
+        blank=True)
+    sponsorshipitem = models.ManyToManyField(SponsorshipItem, _("Sponsorship item choices+"), blank=True)
     def __unicode__ (self):
         return self.company
 
@@ -333,9 +355,18 @@ class RegistrationPage(Page, RichText):
 	upload_to='uploads/company_images',
 	blank=True, 
 	help_text=_("A file field.  Feel free to add whatever you want to this email."))
+    invoice_template_text = models.FileField(_("Invoice Text Template"),
+        upload_to='uploads/templates',
+	blank=True,
+	help_text=_("Text template of invoice in case html version does not render"))
+    invoice_template_html = models.FileField(_("Invoice HTML Template"),
+	upload_to='uploads/templates',
+	blank=True,
+	help_text=_("Should be identical to the text template except with added html"))
     google_maps_api_key = models.CharField(max_length=200, blank=True, 
         help_text="Google how to obtain a google maps key for the location mueller center and past it here")
     text_under_map = models.TextField(max_length=1000, blank=True)
+    show_sponsorship_items = models.BooleanField(default=True)
     class Meta:
         verbose_name = _("Registration Page")
         verbose_name_plural = _("Registration Pages")
@@ -368,18 +399,27 @@ class AboutPage(Page, RichText):
         help_text="Blurb under heading4",
         default="")
 
-
 class StaffProfile(Orderable):
     '''
     A slide in a slider connected to a HomePage
     '''
-    aboutpage = models.ForeignKey(AboutPage, related_name="staff_profile")
+    aboutpage = models.ForeignKey(AboutPage, related_name="aboutpage", null=True)
     name = models.CharField(max_length = 100, help_text="Enter the name of the staff memeber here")
     position = models.CharField(max_length = 100, help_text="Enter their position among the career fair staff")
     bio = RichTextField(max_length = 1000, help_text="Enter a short bio of that person and their duties")
     image = FileField(verbose_name=_("Image"),
         upload_to=upload_to("theme.Slide.image", "Headshots"),
         format="Image", max_length=255, null=True, blank=True)
+    def __unicode__(self):
+	return self.name
+
+class Committee(Orderable):
+    committee_members = models.ManyToManyField(StaffProfile, _("Committee"))
+    committee_name = models.CharField(max_length = 100, help_text="Name of committee", default = "Committee name")
+    aboutpage = models.ForeignKey(AboutPage, related_name="committee")
+     
+
+
 #
 #
 # AGENDA PAGE:
@@ -408,17 +448,10 @@ class PricingPage(Page, RichText):
 
 
 class TipPage(Page, RichText):
-    heading = models.CharField(max_length=200,
-	help_text="Title here or something")
-
-    left_column_header = models.CharField(max_length=100, help_text="left column")
-    mid_column_header = models.CharField(max_length=100, help_text="mid column")
-    right_column_header = models.CharField(max_length=100, help_text="right column")
-    left_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
-    mid_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
-    right_column_blurb = RichTextField(max_length=3000, help_text="field under left column")
-    bottom_header = models.CharField(max_length=100, help_text="title for gigantic field")
-    bottom_field = RichTextField(max_length=10000, help_text="gigantic field under everything")
+    body = RichTextField(verbose_name=_("Body"),
+        help_text="Insert tips here",
+	default="aaa")
+    
 #
 # HOMEPAGE:
 #
@@ -486,14 +519,16 @@ class HomePage(Page, RichText):
         verbose_name_plural = _("Home pages")
 
 class FAQPage(Page, RichText):
-    heading = models.CharField(max_length=200,
-        help_text="Put title here or something")
+    heading = models.CharField(max_length=500, help_text = "Put title here")
+    class Meta:
+	verbose_name = _("Faq page")
+	verbose_name_plural = _("Faq Pages")
 
 
 class Question(Orderable):
     faqpage = models.ForeignKey(FAQPage, related_name="question")
-    question = RichTextField(_("Question"))
-    answer = RichTextField(_("Answer"))
+    question = models.CharField(_("Question"), max_length = 500,  default = "Question")
+    answer = RichTextField(_("Answer"), null=True)
 
 class ArmoryTableData(models.Model):
     friday_reservations = models.TextField(null=True)
@@ -593,7 +628,7 @@ def show_me_the_money(sender, **kwargs):
         # with those fields on payment form before send it to PayPal)
         if ipn_obj.receiver_email != PayPalInfo.objects.get().email:
             # Not a valid paymen
-	    print PayPalInfo.objects.get().email;
+	    print ipn_obj.receiver_email, PayPalInfo.objects.get().email
             return
 
         # ALSO: for the same reason, you need to check the amount

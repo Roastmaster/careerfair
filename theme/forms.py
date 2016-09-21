@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.files.images import get_image_dimensions
 from multiselectfield import MultiSelectField
 from models import CompanyRep, StudentProfile, CompanyProfile, StudentSearchFormModel, SponsorshipPackage, SponsorshipItem
-from models import DAY_CHOICES, GRADE_LEVEL_CHOICES, MAJOR_CHOICES, VOLUNTEER_CHOICES
+from models import DAY_CHOICES, GRADE_LEVEL_CHOICES, MAJOR_CHOICES, MINOR_CHOICES, VOLUNTEER_CHOICES
 from django.forms.formsets import BaseFormSet
 
 class UserForm(forms.ModelForm):
@@ -31,7 +31,7 @@ class StudentProfileForm(forms.ModelForm):
     state = forms.CharField(widget=forms.TextInput(attrs={'placeholder':"State", 'maxlength':2}), required=False)
     bio = forms.CharField(widget=forms.Textarea(attrs={'placeholder': '''Bio  (a quick blurb about your work history, your talents, accomplishments etc.)'''}), required=False)
     major = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
-    minor = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES, required=False)
+    minor = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MINOR_CHOICES, required=False)
     grade_level = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=GRADE_LEVEL_CHOICES)
     website = forms.CharField(widget=forms.TextInput(attrs={'placeholder': "linkedin, portfolio, personal site, etc"}), required=False)
     GPA = forms.DecimalField(widget=forms.TextInput(), required=False)
@@ -105,7 +105,6 @@ class CompanyProfileForm(forms.ModelForm):
     mood = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'How are you feeling today?'}), required=False)
     company_bio = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'A short blurb about who your company is and what you do.'}), required=False)
     phone_number = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Phone number'}), required=False)
-    public_email = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Public email '}), required=False)
     company_website = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Application website'}), required=False)
     majors_wanted = forms.MultipleChoiceField(widget=forms.SelectMultiple(), choices=MAJOR_CHOICES)
     days_attending = forms.MultipleChoiceField(widget=forms.SelectMultiple() , choices=DAY_CHOICES)
@@ -121,9 +120,9 @@ class CompanyProfileForm(forms.ModelForm):
     logo = forms.FileField(widget=forms.FileInput(attrs={'accept':'image/*'}), required=False)
     class Meta:
         model = CompanyProfile
-        fields = ('company', 'public_email', 'phone_number', 'company_website' , 'logo' , 
+        fields = ('company', 'phone_number', 'company_website' , 'logo' , 
             'days_attending', 'majors_wanted', 'grade_level_wanted', 'company_bio',
-            "mood", 'friday_number_of_tables', 'saturday_number_of_tables', 'sponsor', 'sponsorshipitem', 'interview_rooms_friday', 
+             'friday_number_of_tables', 'saturday_number_of_tables', 'sponsor', 'sponsorshipitem', 'interview_rooms_friday', 
             'interview_friday_from', 'interview_friday_to', 'interview_rooms_saturday',
             'interview_saturday_from' , 'interview_saturday_to')
 
@@ -156,7 +155,7 @@ class CompanyProfileForm(forms.ModelForm):
 	    try:
 		days_attending = self.cleaned_data['days_attending']
 	    	if not 'Saturday' in days_attending and saturday_number_of_tables > 0:
-		    raise forms.ValidationError("You can't have a table on a day youa aren't attending!")
+		    raise forms.ValidationError("You can't have a table on a day you aren't attending!")
 		elif 'Saturday' in days_attending and saturday_number_of_tables <= 0:
 		    raise forms.ValidationError("You need to have at least one table on a day you are attending!")
 	    except KeyError:
@@ -369,10 +368,19 @@ class StudentSearchForm(forms.ModelForm):
         return minimum_GPA
 
 
+def get_choices(value):
+    res = set()
+    if isinstance(value, list):
+	for item in value:
+	    res.add(item)
+    else:
+	res.add(value)
+    return res
+
 from django.forms.extras import SelectDateWidget
 from django.core.urlresolvers import reverse
 from django.utils.translation import ungettext, ugettext_lazy as _
-
+from mezzanine.utils.email import split_addresses as split_choices
 FILTER_CHOICE_CONTAINS = "1"
 FILTER_CHOICE_DOESNT_CONTAIN = "2"
 
@@ -444,18 +452,19 @@ FILTER_FUNCS = {
             (not val_to or val_to >= field)
         ),
     FILTER_CHOICE_CONTAINS_ANY:
-        lambda val, field: set(val) & set(split_choices(field)),
+        lambda val, field: set(val) & set(get_choices(field)),
     FILTER_CHOICE_CONTAINS_ALL:
-        lambda val, field: set(val) == set(split_choices(field)),
+        lambda val, field: set(val) == set(field),
     FILTER_CHOICE_DOESNT_CONTAIN_ANY:
-        lambda val, field: not set(val) & set(split_choices(field)),
+        lambda val, field: not set(val) & set(field),
     FILTER_CHOICE_DOESNT_CONTAIN_ALL:
-        lambda val, field: set(val) != set(split_choices(field)),
+        lambda val, field: set(val) != set(field),
 }
 
-MULTIPLE = ("grade_level_wanted", "majors_wanted", "days_attending",  "sponsorshipitem")
-CHOICES = ("has_submitted_payment", "is_non_profit", "sponsor")
-DATES = ('creation_date')
+
+MULTIPLE = ("Grade Level Wanted", "Majors Wanted", "Days Attending",  "Sponsorship Item Choices")
+CHOICES = ("Has Submitted Payment", "Is Non-Profit", "Sponsorship Choice")
+DATES = ('Creation Date', "Last updated")
 
 class EntriesForm(forms.Form):
     """
@@ -465,7 +474,7 @@ class EntriesForm(forms.Form):
 
     def __init__(self, form, request, *args, **kwargs):
         """
-        Iterate through the fields of the ``forms.models.Form`` instance and
+        terate through the fields of the ``forms.models.Form`` instance and
         create the form fields required to control including the field in
         the export (with a checkbox) or filtering the field which differs
         across field types. User a list of checkboxes when a fixed set of
@@ -474,7 +483,7 @@ class EntriesForm(forms.Form):
         """
         self.form = form
         self.request = request
-        self.form_fields = sorted(list(CompanyProfile._meta.get_all_field_names()))
+        self.form_fields =[field.verbose_name.title() for field in sorted(list(CompanyProfile._meta.get_fields())) ]
         super(EntriesForm, self).__init__(*args, **kwargs)
         for field in self.form_fields:
             field_key = "field_" + field
@@ -492,11 +501,11 @@ class EntriesForm(forms.Form):
             elif field.strip("_") in MULTIPLE:
                 # A fixed set of choices to filter by, with multiple
                 # possible values in the entry field.
-                if field.strip("_") == "majors_wanted":
+                if field.strip("_") == "Majors Wanted":
                     c = MAJOR_CHOICES
-                elif field.strip("_") == "days_attending":
+                elif field.strip("_") == "Days Attending":
                     c = DAY_CHOICES
-                elif field.strip("_") == "grade_;evel_wanted":
+                elif field.strip("_") == "Grade Level Wanted":
                     c = GRADE_LEVEL_CHOICES
                 else:
                     c = GRADE_LEVEL_CHOICES
@@ -537,7 +546,6 @@ class EntriesForm(forms.Form):
             prefix = "field_%s_" % field_id
             fields = [f for f in super(EntriesForm, self).__iter__()
                       if f.name.startswith(prefix)]
-
             yield fields[0], fields[1], fields[2:]
 
     def columns(self):
@@ -561,11 +569,12 @@ class EntriesForm(forms.Form):
         field_indexes = {}
         file_field_ids = []
         date_field_ids = []
-        for field in self.form_fields:
-            if self.cleaned_data["field_%s_export" % field.strip("_")]:
-                field_indexes[field] = len(field_indexes)
-                if field == "logo":
-                    file_field_ids.append(field)
+	loc_fields = CompanyProfile._meta.get_fields()
+        for field in loc_fields:
+            if self.cleaned_data["field_%s_export" % field.verbose_name.title().strip("_")]:
+                field_indexes[field.name] = len(field_indexes)
+                if field.name == "logo":
+                    file_field_ids.append(field.name)
         num_columns = len(field_indexes)
         num_columns += 1
 
@@ -591,17 +600,19 @@ class EntriesForm(forms.Form):
                     valid_row = True
                 field_value = getattr(profile, field.name)
                 field_id = profile.id
-                filter_type = "field_%s_filter" % field.name.strip("_")
+		verbose = field.verbose_name.title().strip("_")
+                filter_type = self.cleaned_data.get("field_%s_filter" % verbose)
                 filter_args = None
                 if filter_type:
+		    print filter_type
                     if filter_type == FILTER_CHOICE_BETWEEN:
-                        f, t = "field_%s_from" % field.name.strip("_"), "field_%s_to" % field.name.strip("_")
-                        filter_args = [f, t]
-                else:
-                    field_name = "field_%s_contains" % field.name.strip("_")
-                    filter_args = field_name
-                    if filter_args:
-                        filter_args = [filter_args]
+                        f, t = "field_%s_from" % verbose, "field_%s_to" % verbose
+                        filter_args = [self.cleaned_data[f], self.cleaned_data[t]]
+               	    else:
+                   	field_name = "field_%s_contains" % verbose
+                    	filter_args = self.cleaned_data[field_name]
+                    	if filter_args:
+                            filter_args = [filter_args]
                 if filter_args:
                 # Convert dates before checking filter.
                     if field_id in date_field_ids:
@@ -609,9 +620,13 @@ class EntriesForm(forms.Form):
                         dte = date(int(y), int(m), int(d))
                         filter_args.append(dte)
                     else:
-                        filter_args.append(field_value)
+			if isinstance(field_value, bool):
+			    filter_args.append([str(field_value)])
+			else:
+			    filter_args.append(field_value)
                     filter_func = FILTER_FUNCS[filter_type]
-                    if not filter_func(*filter_args):
+		    print filter_args, filter_func, filter_type
+		    if not filter_func(*filter_args):
                         valid_row = False
                  # Create download URL for file fields.
                 if field.name and field_id in file_field_ids:

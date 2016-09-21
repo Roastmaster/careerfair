@@ -247,7 +247,7 @@ $(document).ready(function() {
                             <div id="grade_level_wanted"></div>
                             <div id="application_website"></div>
                         </div>
-                        <div class="span2">
+                        <div class="span2" id="armory-container">
                             {% for comp in company_list %}
                             <div class="row selectable" id="{{comp.user.id}}">
                                 <div class="selectable">
@@ -291,33 +291,28 @@ $(document).ready(function() {
                             <div class="demo">
                                 <div id="seat-map">
                                     <div class="front">ARMORY ENTRANCE {% if user.is_staff %}  [PERMISSIONS: ADMIN] <br> You have permissions to alter this table.  Be careful! <br> Click a company on the left to select them, then click unavailable on an   y square on the graph to assign them a table, Hit submit to save your changes.{% endif %}</div>                 
-                                </div>       
-                            </div>
-                        </div>
-                    </div>
                             {% if user.is_active and user.is_staff %}
                             <div class="row">
-                                <div class="span7">
+                                <div class="span2">
                                 </div>
-                                <div class="span3">
-                                    <div id="table-submit" class="btn btn-default btn-lg">Submit changes to database</div>
+                                <div class="span2">
+                                    <div id="table-submit" class="btn btn-default btn-lg">Submit changes</div>
                                 </div>
                                 <div class="span2">
                                     <div id="warning" ><h2 class="title"></h2></div>
                                 </div>
                             </div>
+			    <div class="rubenbuffer"></div>
                             <div class="row">
-                            <div class="span6">
-                            </div>
-                                <div class="span2">
-                                    <p>Tables: <span id="counter">0</span></p>
-                                    <p>Table: </p>
-                                </div>
                                 <div class="span3">
                                     <div id="legend"></div>
                                 </div>
                             </div>
                             {% endif %}
+                                </div>       
+                            </div>
+                        </div>
+                    </div>
                         </div>                  
                     </div>
                 </section>

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from future.builtins import open, bytes
+import csv
 
 from django.contrib import admin
 from django.core.files.storage import FileSystemStorage
@@ -28,6 +29,8 @@ from models import FeaturedCompany
 from models import Announcement
 from models import StaffProfile
 from models import Question
+from models import Committee
+from models import CompanyRep
 
 from models import StudentProfile
 from models import CompanyProfile
@@ -94,8 +97,11 @@ class HomePageAdmin(PageAdmin):
 class StaffProfileLine(TabularDynamicInlineAdmin):
 	model = StaffProfile
 
+class CommitteeInline(TabularDynamicInlineAdmin):
+	model = Committee
+
 class AboutPageAdmin(PageAdmin):
-	inlines = (StaffProfileLine,)
+	inlines = (CommitteeInline, StaffProfileLine)
 
 #
 #
@@ -210,7 +216,41 @@ class QuestionInLine(TabularDynamicInlineAdmin):
 class FAQPageAdmin(PageAdmin):
     inlines=(QuestionInLine,)
 
+class StudentAdmin(admin.ModelAdmin):
+    search_fields = ['first_name', 'last_name']
+    list_max_show_all = 10000 
 
+class CompanyAdmin(admin.ModelAdmin):
+    search_fields = ['company']
+    list_display = ['company', 'user', 'days_attending', 'has_submitted_payment', 'total_bill']
+
+class CompanyRepAdmin(admin.ModelAdmin):
+    search_fields = ['rep', 'company']
+    list_display = ['rep', 'company', 'days_attending', 'is_present']
+    actions = ['make_attend', 'reset_attendance',  'export_selected_objects']
+    list_max_show_all = 1000
+    def make_attend(self, request, queryset):
+	for rep in queryset.all():
+	    rep.is_present = not rep.is_present
+	    rep.save()
+   
+    def reset_attendance(self, request, queryset):
+	for rep in queryset.all():
+	    rep.is_present = False
+	    rep.save()
+ 
+    def export_selected_objects(self, request, queryset):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = 'attachment; filename="reps.csv"'
+	writer = csv.writer(response)
+	writer.writerow(['Name', 'Company', 'Alumni', 'Present'])
+	for rep in queryset.all():
+	   writer.writerow([rep.rep, rep.company, rep.is_alumni, rep.is_present])
+	return response
+
+    make_attend.short_description = "Mark this representative as present"
+    reset_attendance.short_description = "CAUTION:  Mark all selected representatives as not present"
+    export_selected_objects.short_description = "Export selected representatives to CSV"
 
 
 # Now to actually get them to show up on the CMS front end...
@@ -224,8 +264,9 @@ admin.site.register(RegistrationPage, RegistrationPageAdmin)
 admin.site.register(SponsorUsPage, SponsorUsPageAdmin)
 admin.site.register(FAQPage, FAQPageAdmin)
 admin.site.register(TipPage, PageAdmin)
-admin.site.register(StudentProfile)
-admin.site.register(CompanyProfile)
+admin.site.register(StudentProfile, StudentAdmin)
+admin.site.register(CompanyProfile, CompanyAdmin)
+admin.site.register(CompanyRep, CompanyRepAdmin)
 admin.site.register(PayPalInfo)
 admin.site.register(SponsorshipPackage)
 admin.site.register(ArmoryTableData)

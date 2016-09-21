@@ -19,7 +19,7 @@
 	                 making everything look neater. -->
 	            <h3 class ="title"> Your login information (remember this stuff) </h3>
 	            <div class="row">
-	            	<div class="span7">
+	            	<div class="span8">
 	            		{% if user_form.username.errors %}
 			            {{user_form.password.errors}}
 			            <div class="alert alert-danger"><h4 class="title"><a href="#">A user with this email address already exists!</a></h4></div>
@@ -28,13 +28,13 @@
 			        </div>
 		        </div>
 		        <div class="row">
-		            <div class="span7">
+		            <div class="span8">
 		            	{{user_form.password.errors}}
 		  		        {{user_form.password}}
 		            </div>
 	            </div>
 	            <div class="row">
-		            <div class="span7">
+		            <div class="span8">
 		            	{{user_form.password2.errors}}
 		  		        {{user_form.password2}}
 		            </div>
@@ -61,18 +61,18 @@
 	           		</div>
 		    	</div>
 		    	<div class="row">
-	            	<div class="span5">
+	            	<div class="span6">
 	            		{{profile_form.hometown.errors}}
 	            		{{profile_form.hometown}}
-	           		</div>
-	           		<div class="span2">
+	           	</div>
+	           	<div class="span2">
 	           			{{profile_form.state.errors}}
 	            		{{profile_form.state}} 
-	           		</div>
-	           		<div class="span1">
-	           			{{profile_form.open_to_relocation}}
-	           			{{profile_form.open_to_relocation.help_text}}
-	           		</div>
+	           	</div>
+	           	<div class="span1">
+	           		{{profile_form.open_to_relocation}}
+	           		{{profile_form.open_to_relocation.help_text}}
+	           	</div>
 		    	</div>
 		    	<div class="row">
 	            	<div class="span8">
