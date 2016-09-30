@@ -205,7 +205,7 @@ class StudentProfile(models.Model):
     phone_number = models.CharField(blank=True, max_length=14)
     grade_level = MultiSelectField(choices=GRADE_LEVEL_CHOICES, max_choices=1, blank=True)
     major = MultiSelectField(choices=MAJOR_CHOICES, max_choices=2, blank=True)
-    minor = MultiSelectField(choices=MAJOR_CHOICES, max_choices=1, blank=True)
+    minor = MultiSelectField(choices=MINOR_CHOICES, max_choices=1, blank=True)
     resume = models.FileField(upload_to='resumes', blank=True)
     picture = models.ImageField(upload_to='uploads/student_images', blank=True)
     hometown = models.CharField(max_length=100, blank=True)

@@ -676,6 +676,18 @@ def student_redirect(request, uid):
 #           define a new cell
 from django.contrib.admin.views.decorators import staff_member_required
 @staff_member_required
+
+def trans(s):
+    count = ord(s[0]) - 64
+    if len(s) > 1:
+	count = count + 26
+
+def reverse_trans(s):
+    if s <=26:
+	return chr(s+64)
+    else:
+	return chr(s+64-26)*2
+
 def book_all_tables(request, day):
     print day
     # turn json post data into python dictionary
@@ -823,10 +835,16 @@ def get_company_booking(request,uid,day):
             if table and (y+1, x+1) not in hashable:
                 others_booked.append({"seat_id":str(y+1)+"_"+str(x+1)})
 
+    logo_url = ""
+    try:
+	logo_url = company.logo.url
+    except ValueError:
+	logo_url = "uploads/default_icons/Company_icon.png"    
+ 
     return HttpResponse( json.dumps({"bookings": booked, "others":others_booked, 
         "companyname":company.company, "company_bio":company.company_bio,
         "days_attending":"<br>".join(company.days_attending), 
-        "logo":company.logo.url, "grade_level_wanted":"<br>".join(company.grade_level_wanted), 
+        "logo":logo_url, "grade_level_wanted":"<br>".join(company.grade_level_wanted), 
         "majors_wanted": "<br>".join(company.majors_wanted) }) )
 
 def armory_manipulation(request):

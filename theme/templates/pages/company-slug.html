@@ -19,35 +19,59 @@
             
             var sc = $('#seat-map').seatCharts({
                 map: [  //Seating chart
-                    '__aaaaaaaaaaaaaaaaa___',
-                    'a____________________a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a____________________a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a____________________a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a_a___a_a____a_a___a_a',
-                    'a__aaa___aaaa___aaa__a',
-                    'a____________________a',
-                    '______aaaaaaaaaa______',
-                ],
+            '__________________________________________________',
+            '____a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a___',
+            '__________________________________________________',
+            '__________________________________________________',
+            '_a____a_a_a_a______a_a_a_a_a______a_a_a_a______a__',
+            '______________a______________a____________a_______',
+            '_a___a____________a______________a_____________a__',
+            '______________a______________a____________a_______',
+            '_a___a____________a______________a_____________a__',
+            '______________a______________a____________a_______',
+            '_a___a____________a______________a_____________a__',
+            '_______a_a_a_a_______________a_____a_a_a_a________',
+            '_a________________a____________________________a__',
+            '____________________a_a_a_a_a_____________________',
+            '_a_____________________________________________a__',
+            '______a_a_a________________________a_a_a__________',
+            '_a__________a____________________________a_____a__',
+            '_____a_____________a_a_a_a_a______a_______________',
+            '_a__________a________________a___________a_____a__',
+            '_____a____________a_______________a_______________',
+            '_a__________a________________a___________a_____a__',
+            '_____a____________a_______________a_______________',
+            '_a__________a________________a___________a_____a__',
+            '_____a____________a_______________a_______________',
+            '_a_____a_a_a_________________a______a_a_a______a__',
+            '__________________a_______________________________',
+            '_a__________________a_a_a_a_a__________________a__',
+            '__________________________________________________',
+            '_a____a_a_a________________________a_a_a_______a__',
+            '____________a______a_a_a_a_a_____________a________',
+            '_a___a_______________________a____a____________a__',
+            '____________a_____a______________________a________',
+            '_a___a_______________________a____a____________a__',
+            '____________a_____a______________________a________',
+            '_a___a_______________________a____a____________a__',
+	    '____________a_____a______________________a________',
+	    '_a___a______________a_a_a_a_a_____a____________a__',
+	    '_______a_a_a________________________a_a_a_________',
+	    '_a_____________________________________________a__',
+	    '_______________a_a_a_a_a_a_a_a_a_a________________',
+	    '_a_____________________________________________a__',
+	    '__________________________________________________',
+	    '__________________________________________________', 
+		],
                 naming : {
                     top : false,
                     getLabel : function (character, row, column) {
                         return column;
-                    }
+                    },
+	    	    getId : function(character, row, column){
+	    		return this.rows.indexOf(row)+'_'+column;
+	    	    },
+	    	    rows : ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','AA','BB','CC','DD','EE','FF','GG','HH','II','JJ','KK','LL','MM','NN','OO','PP']
                 },
                 legend : { //It's confused but don't fucking touch it
                     node : $('#legend'),
@@ -106,16 +130,33 @@
 
             sc.find('available').status('unavailable');
 
+    $("#friday-toggle").click(function(){
+        day = "friday";
+        sc.find('available').status('unavailable');
+        sc.find('selected').status('unavailable');
+        refreshData(selected);
+    });
+
+    $("#saturday-toggle").click(function(){
+        day = "saturday";
+        sc.find('available').status('unavailable');
+        sc.find('selected').status('unavailable');
+        refreshData(selected);
+
+    });
+
+    sc.find('available').status('unavailable');
 
             $.ajax({
                 type     : 'get',
-                url      : '/bookings/get_company/{{user_profile.id}}/'+day,
+                url      : '/bookings/get_company/{{company_profile.user.id}}/'+day,
                 dataType : 'json',
                 success  : function(response) {
                     //iterate through all bookings for our event 
                     $.each(response.others, function(index, other) {
                         //find seats reserved by people other than the
                         // specified company by id and set its status to selected
+			console.log(other.seat_id);
                         sc.status(other.seat_id, 'selected');
                     });
 
@@ -156,19 +197,22 @@
             function refreshData(div){
                     $.ajax({
                     type     : 'get',
-                    url      : '/bookings/get_company/{{user_profile.id}}/'+day+'/',
+                    url      : '/bookings/get_company/{{company_profile.user.id}}/'+day+'/',
                     dataType : 'json',
                     success  : function(response) {
                         //iterate through all bookings for our event 
                         $.each(response.others, function(index, other) {
                             //find seats reserved by people other than the
-                            // specified company by id and set its status to selected
-                            sc.status(other.seat_id, 'selected');
+                            
+			    // specified company by id and set its status to selected
+                            console.log(other.seat_id);
+			    sc.status(other.seat_id, 'selected');
                         });
 
                         $.each(response.bookings, function(index, booking) {
                             //find seat by id and set its status to unavailable
-                            sc.status(booking.seat_id, 'available');
+                            
+			    sc.status(booking.seat_id, 'available');
                         });
                         old_seats = sc.find('available').seatIds;
                     }
@@ -198,21 +242,21 @@
         		<div id="ruben_buffer">
                 <section>
                 	<div class="row">
-                    	<div class="span3">
+                    	<div class="span2">
                         	<h2 class="title"><span>Company Profile</span></h2> 
                         </div>
-                        <div class="span6">   
+                        <div class="span2">   
                             <h2 class="title">{{company_profile.company}}</h2>
                         </div>
-                        <div class="span2">
+                        <div class="span4">
                             <h2 class="title">table</h2>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="span3">
+                        <div class="span2">
                             <img class="img-border" src="{{MEDIA_URL}}{{company_profile.logo}}"/>                      
                         </div>
-                    	<div class="span9">
+                    	<div class="span10">
                             <div class="row">
                                 <div class="span2">
                                 </div>
@@ -220,7 +264,7 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="span3">
+                                <div class="span2">
                                     {% if company_profile.company_bio %}
                                     <h3>Bio</h3>
                                     {{company_profile.company_bio}}
@@ -240,21 +284,22 @@
                                     {{company_profile.public_email}}
                                     {% endif %}
                                 </div>
-                                <div class="span6">
+                                <div class="span8">
                                     <div class="row">
-                                        <div class="span6">
+                                        <div class="span8">
                                            <ul class="nav nav-tabs">
                                                 <li id="friday-toggle"class="active"><a data-toggle="tab" href="#friday">Friday</a></li>
                                                 <li id="saturday-toggle"><a data-toggle="tab" href="#saturday">Saturday</a></li>
                                             </ul>
                                         </div>
                                     </div>
-                                    <div class="span5">
-                                        <div class="demo">
+                                    <div class="span8">
+                                         <div class="demo">
                                             <div id="seat-map">
-                                                <div class="front">ARMORY ENTRANCE {% if user.is_staff %}  [PERMISSIONS: ADMIN] <br> You have permissions to alter this table.  Be careful! {% endif %}</div>                 
+                                                <div class="front" style="margin:0 32px 10px 110px">{% if user.is_staff %}  [PERMISSIONS: ADMIN] <br> You have permissions to alter this table.  Be careful! {% endif %}</div>                 
                                              </div>       
                                         </div>
+				
                                     </div>
                                 </div>
                             </div>
